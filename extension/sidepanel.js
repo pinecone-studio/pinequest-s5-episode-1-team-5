@@ -191,7 +191,7 @@ async function ask(question) {
       if (r.intent === "documents" && r.purpose) { msg.plan = { loading: true }; render(); await makePlan(msg, r.purpose, question); }
     }
   } catch (e) {
-    chat[chat.length - 1] = { role: "assistant", text: "Алдаа: " + e.message, error: true };
+    chat[chat.length - 1] = { role: "assistant", text: "Алдаа: " + e.message, error: true, retry: question };
   }
   ui.asking = false;
   render();
@@ -662,6 +662,8 @@ function messagesHtml() {
   return chat.map((m, mi) => {
     if (m.role === "user") return `<div class="bubble">${esc(m.text)}</div>`;
     if (m.pending) return `<div class="typing" role="status">${spinner(16)} Бодож байна…</div>`;
+    if (m.error && m.retry) return `<div class="reply reply--error"><p>${esc(m.text)}</p>
+      <button type="button" class="btn btn--ghost reply__retry" data-action="retry-ask" data-mi="${mi}" ${ui.asking ? "disabled" : ""}>${icon("refresh", 16)} Дахин оролдох</button></div>`;
     const links = (m.links || []).map(l => `<a class="service-link" href="https://e-mongolia.mn${esc(l.path)}" target="_blank" rel="noopener noreferrer">${icon("external", 14)}<span>${esc(l.title)}</span></a>`).join("");
     const p = m.plan;
     const plan = !p ? ""
@@ -959,6 +961,13 @@ async function onClick(e) {
     case "toggle-menu": ui.menu = ui.menu === b.dataset.menu ? null : b.dataset.menu; return render();
     case "reset": return resetInfo();
     case "suggest": return ask(b.dataset.q);
+    case "retry-ask": {
+      // Алдаатай хариулт сүүлийнх бол түүнийг асуултын хамт хасаад дахин асууна (ask() дахин нэмнэ)
+      const mi = +b.dataset.mi, q = chat[mi]?.retry;
+      if (!q || ui.asking) return;
+      if (mi === chat.length - 1 && chat[mi - 1]?.role === "user") chat.splice(mi - 1, 2);
+      return ask(q);
+    }
     case "go-list":
       ui.started = true;
       setTab("documents");
