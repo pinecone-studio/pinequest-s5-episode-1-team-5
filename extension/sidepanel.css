@@ -556,6 +556,7 @@ textarea { font: inherit; color: inherit; }
 /* ---------- Чат ---------- */
 .reply p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .reply--error p, .reply__error { color: var(--danger); }
+.reply__retry { align-self: flex-start; }
 .service-links { display: flex; flex-direction: column; gap: 6px; }
 .service-link {
   display: flex; align-items: center; gap: 8px;
