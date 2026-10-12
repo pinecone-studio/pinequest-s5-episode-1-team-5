@@ -422,7 +422,7 @@ async function parseList(fresh = false) {
       note = `AI ${p.items.length} мөр олов.`;
     } catch (e) {
       // AI сервис ажиллахгүй бол (шинэчлэгдээгүй, хязгаарт хүрсэн…) түлхүүр үгээр задална. Зургийг AI-гүйгээр уншихгүй.
-      if (!text) throw new Error(`Зургийг уншиж чадсангүй (${e.message}). Жагсаалтаа текстээр бичнэ үү.`);
+      if (!text) throw new Error(`Зургийг уншиж чадсангүй (${e.message}). Жагсаалтаа текстээр бичнэ үү.`, { cause: e });
       p = { title: "", addressee: "", tips: [], items: localPlan(text) };
       note = "AI ажиллахгүй байсан тул түлхүүр үгээр задлав.";
     }

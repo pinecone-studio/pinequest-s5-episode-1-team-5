@@ -43,7 +43,7 @@ export async function loadCatalog(force = false) {
     return prepareCatalog(list);
   } catch (e) {
     if (catalog?.length) return prepareCatalog(catalog); // хуучин хуулбараар үргэлжлүүлнэ
-    throw new Error("e-Mongolia-ийн үйлчилгээний жагсаалтыг татаж чадсангүй: " + e.message);
+    throw new Error("e-Mongolia-ийн үйлчилгээний жагсаалтыг татаж чадсангүй: " + e.message, { cause: e });
   }
 }
 
