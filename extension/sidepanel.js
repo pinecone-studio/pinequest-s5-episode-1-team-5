@@ -345,22 +345,26 @@ function openPdf(d) {
   chrome.tabs.create({ url });
 }
 
+// «Зогсоох» дарвал (plan.cancel) одоо татаж буй бичиг баримт дууссаны дараа зогсоно. Татсан PDF-үүдийг багцалсаар байна.
 async function collectPlan(plan) {
   if (plan.running) return;
-  plan.running = true; render();
+  plan.running = true; plan.cancel = false; render();
   for (const [i, d] of plan.em.entries()) {
+    if (plan.cancel) break;
     if (d.state === "done" || d.skip || !d.match) continue;
     const r = await collectOne(plan, d, i);
     if (r?.error === "NOT_LOGGED_IN") break;
-    const alt = r?.error === "NOT_REGISTERED" && ALTERNATIVES.find(([re]) => re.test(d.match.title));
+    const alt = r?.error === "NOT_REGISTERED" && !plan.cancel && ALTERNATIVES.find(([re]) => re.test(d.match.title));
     if (alt) {
       const m = await matchService(alt[1](d.match.title));
       if (m) { d.replaced = d.match.title; d.match = m; await collectOne(plan, d, i); }
     }
     render();
   }
-  plan.running = false;
+  const stopped = plan.cancel;
+  plan.running = false; plan.cancel = false;
   await downloadBundle(plan).catch(e => { plan.bundleError = "Багц үүсгэж чадсангүй: " + e.message; });
+  if (stopped) toast("Цуглуулахыг зогсоолоо");
   render();
 }
 
@@ -741,7 +745,8 @@ function planViewHtml({ ref, plan }) {
     </div>` : "";
 
   const mainBtn = plan.running
-    ? `<button type="button" class="btn btn--primary btn--block" disabled>${spinner()} Цуглуулж байна…</button>`
+    ? `<button type="button" class="btn btn--primary btn--block" disabled>${spinner()} ${plan.cancel ? "Зогсоож байна…" : "Цуглуулж байна…"}</button>
+      <button type="button" class="btn btn--ghost btn--block" data-action="cancel-collect" ${at} ${plan.cancel ? "disabled" : ""}>${icon("close", 16)} Зогсоох</button>`
     : collectable
       ? `<button type="button" class="btn btn--primary btn--block" id="collectBtn" data-action="collect" ${at} ${plan.regenerating ? "disabled" : ""}>${icon("download", 18)} Цуглуулж ZIP-ээр татах (${collectable})</button>`
       : hasPdf && !plan.bundle
@@ -992,6 +997,7 @@ async function onClick(e) {
     case "regen": return regenerate(ref);
     case "delete-list": return deleteList(ref);
     case "collect": return collectPlan(plan);
+    case "cancel-collect": plan.cancel = true; return render();
     case "rezip": return downloadBundle(plan).catch(err => { plan.bundleError = "Багц үүсгэж чадсангүй: " + err.message; render(); });
     case "folder": return chrome.runtime.sendMessage(plan.bundle?.id ? { type: "SHOW_FILE", id: plan.bundle.id } : { type: "SHOW_FOLDER" });
     case "open": return openPdf(d);
