@@ -61,10 +61,22 @@ const ui = {
 };
 
 // --- AI сервис ----------------------------------------------------------------------
+// AI ихэвчлэн 10–40 секундэд хариулна. Үүнээс удвал хүлээлгэхгүй, алдаа гаргаж дахин оролдуулна.
+const SERVICE_TIMEOUT = 60_000;
+
 async function service(path, payload) {
-  const r = await fetch(SERVICE_URL + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), SERVICE_TIMEOUT);
+  try {
+    const r = await fetch(SERVICE_URL + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), signal: ctrl.signal });
+    if (!r.ok) throw new Error(await r.text());
+    return await r.json();
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error(`AI сервис ${SERVICE_TIMEOUT / 1000} секундэд хариу өгсөнгүй. Дахин оролдоно уу.`, { cause: e });
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Ижил хүсэлтэд үргэлж ижил жагсаалт: AI-ийн /plan, /parse хариуг энэ компьютерт 30 хоног хадгална.
