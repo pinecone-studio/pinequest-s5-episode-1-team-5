@@ -12,6 +12,8 @@
 
    **Тогтвортой гаралт.** Бичиг баримт бүрдүүлэх хүсэлтийг («…бүрдүүл», «ямар бичиг баримт хэрэгтэй», «виз мэдүүлэх», «…материал») extension өөрөө таньдаг. Латин үсгээр бичсэн ч («nadad company baiguulahad heregtei bichig barimt burduulj ug») ижил танина. Тиймээс AI энгийн хариулт өгөх эрсдэлгүй, үргэлж ижил хэлбэрээр гарна: гарчиг → e-Mongolia-оос цуглуулах → **Цуглуулж ZIP-ээр татах** → өөрөө бэлдэх. Нэг хүсэлтэд AI-ийн гаргасан жагсаалтыг компьютер дээр 30 хоног хадгална. Хүсэлтийг өөр үгээр бичсэн ч («Компани байгуулах бичиг баримт бүрдүүл» = «Компани байгуулахад ямар бичиг баримт хэрэгтэй вэ?») ижил жагсаалт гарна. Шинэ жагсаалт хэрэгтэй бол **⋯** цэс → **Шинээр гаргах** дарна.
 
+Бусад боломж: AI хариулт бүрийг **Хуулах**, алдаатай хариултыг **Дахин оролдох**, цуглуулж байхад **Зогсоох**, жагсаалтыг **.txt файлаар татах** эсвэл **Хэвлэх**, жагсаалтын зургийг **чирж оруулах** эсвэл **Ctrl+V**-ээр буулгах. Системийн бараан горимд (dark mode) UI бараан өнгөтэй болно.
+
 «Тойм» табын **⋯** цэс → **Дахин эхлүүлэх** нь хураангуй, chat-ийг цэвэрлэнэ. «Бичиг баримт» табын **⋯** цэс → **Жагсаалт устгах** нь тухайн жагсаалтыг устгана. Сар бүрийн агшин (snapshot) устахгүй. «Нууцлал» цонхны **Хадгалсан мэдээллээ устгах** нь бүгдийг устгана.
 
 UI-ийн дизайн: «Миний мэдээлэл AI v2» (Golos Text фонт, `extension/fonts/`, SIL Open Font License; дээд хэсгийн зураг `extension/images/background.webp`).
@@ -153,21 +155,47 @@ GET  https://cdn.e-mongolia.mn/api/files/entity/{fileId}               → PDF  
 ## Бүтэц
 
 ```
-extension/
-  manifest.json
-  sidepanel.*    UI: эхлэх дэлгэц, «Тойм» (хураангуй, chat) ба «Бичиг баримт» (жагсаалт, цуглуулах) таб
-  fonts/, images/  Golos Text фонт (интернэтгүй ажиллана), дээд хэсгийн арын зураг (sidepanel.css)
-  content.js     ХУР-аас хувийн мэдээлэл татах (Шинжилж эхлэх / Шинэчлэх)
-  collector.js   үйлчилгээний хуудсан дээр: нэвтэрсэн эсэх, төлбөр/хугацаа, маягт бөглөх, PDF барих
-  background.js  цуглуулах урсгалыг удирдах
-  catalog.js     e-Mongolia-ийн каталог, тааруулалт, AI-гүй жагсаалт задлалт (HINTS)
-  sources.js     ХУР-ын 12 эх сурвалж
-  lib.js         нууцлах, агшин, сарын ялгаа
-  zip.js         нэмэлт сангүй ZIP (UTF-8 нэр)
-  config.js      AI сервисийн хаяг
-worker/          Cloudflare Worker: /summarize, /chat, /plan, /parse
-.github/workflows/extension.yml   extension/ → minii-medeelel-ai.zip (GitHub Release)
+extension/                 Chrome extension (Manifest V3, build алхамгүй — файлуудыг шууд ачаална)
+  manifest.json            зөвшөөрөл, side panel, background service worker
+  sidepanel.html           UI-ийн бүтэц: эхлэх дэлгэц, «Тойм», «Бичиг баримт» таб, нууцлал, баталгаажуулах цонх
+  sidepanel.css            дизайн (өнгө :root-д, бараан горим, prefers-reduced-motion)
+  sidepanel.js             UI-ийн логик: шинжлэх, chat, жагсаалт гаргах, цуглуулах, ZIP, үйлдлүүд
+  icons.js                 SVG дүрсүүд: icon("нэр", хэмжээ), spinner()
+  constants.js             тогтмол текстүүд: санал болгох асуулт, татах мэдээлэл, нууцлал, бичиг баримтын төлөв
+  text.js                  хүсэлтийн текст: latin() (кирилл/латин), requestKey(), isDocRequest()
+  catalog.js               e-Mongolia-ийн үйлчилгээний каталог, тааруулалт, AI-гүй жагсаалт задлалт (HINTS)
+  lib.js                   нууцлах (redact), сар бүрийн агшин, сар хоорондын ялгаа (diff)
+  zip.js                   нэмэлт сангүй ZIP (UTF-8 нэр, CRC32)
+  sources.js               ХУР-ын 12 эх сурвалж
+  config.js                AI сервисийн хаяг, e-Mongolia табын хэв маяг, хүсэлтийн хугацааны хязгаар
+  background.js            цуглуулах урсгалыг удирдах (таб, татах, файлын нэр)
+  content.js               e-Mongolia таб дээр: ХУР-аас хувийн мэдээлэл татах («Шинжлэх»)
+  collector.js             үйлчилгээний хуудсан дээр: нэвтэрсэн эсэх, төлбөр/хугацаа, маягт бөглөх, PDF барих
+  fonts/, images/, icons/  Golos Text фонт (интернэтгүй ажиллана), дээд хэсгийн арын зураг, extension-ий дүрс
+worker/                    AI сервис (Cloudflare Worker): /summarize, /chat, /plan, /parse
+test/                      Vitest тестүүд (text, redact, diff/snapshot, catalog, zip)
+package.json               хөгжүүлэлтийн хэрэгсэл: npm run lint, npm test, npm run format
+eslint.config.js, .prettierrc.json, .editorconfig, vitest.config.js
+.github/workflows/
+  test.yml                 PR бүр болон main руу push хийхэд lint, тест
+  extension.yml            extension/ → minii-medeelel-ai.zip (GitHub Release)
 ```
+
+## Хөгжүүлэлт
+
+Эх кодоос шууд ажиллуулах:
+```bash
+git clone https://github.com/pinecone-studio/pinequest-s5-episode-1-team-5.git
+cd pinequest-s5-episode-1-team-5
+npm install          # ESLint, Prettier, Vitest (зөвхөн хөгжүүлэлтэд; extension-д сан хэрэггүй)
+npm run lint         # ESLint
+npm test             # Vitest: extension-ий DOM, chrome API-гүй функцуудыг Node дээр тестлэнэ
+```
+Chrome-д `chrome://extensions` → **Developer mode** → **Load unpacked** → repo-ийн `extension/` хавтас. Код өөрчилсний дараа extension-ий 🔄 (Reload) товчийг дарж, side panel-ийг хаагаад дахин нээнэ.
+
+- Шинэ ажил эхлэхээс өмнө `git pull origin main`, ажил бүрийг тусдаа branch-д хийж PR нээнэ. PR бүрт GitHub Actions lint, тестийг ажиллуулна.
+- `npm run format` нь Prettier-ээр форматлана. Бүх кодыг нэг дор форматлаагүй (бусад PR-тай зөрчил үүсгэхгүйн тулд), өөрчилсөн файлаа л форматлана.
+- Тест бичих: `test/<нэр>.test.js`. `chrome.*` ашигладаггүй функцуудыг (lib.js, catalog.js, zip.js, text.js) шууд import хийж тестлэнэ.
 
 ## AI сервис (worker/)
 
