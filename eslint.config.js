@@ -26,9 +26,9 @@ export default [
     files: ["worker/**/*.js"],
     languageOptions: { sourceType: "module", globals: { ...globals.serviceworker } },
   },
-  // Тохиргооны файлууд (Node)
+  // Тохиргооны файлууд, тестүүд (Node)
   {
-    files: ["*.config.js"],
+    files: ["*.config.js", "test/**/*.js"],
     languageOptions: { globals: { ...globals.node } },
   },
 ];
