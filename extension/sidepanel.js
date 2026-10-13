@@ -510,7 +510,7 @@ async function shrinkImage(file, max = 1600) {
 
 function showImgName() {
   const f = $("listImg").files[0];
-  $("imgName").textContent = f ? f.name : "эсвэл жагсаалтын зургийг сонгох, чирж оруулах";
+  $("imgName").textContent = f ? f.name : "эсвэл жагсаалтын зургийг сонгох, чирж оруулах, Ctrl+V";
   $("listImg").closest(".file-pick").classList.toggle("has-file", !!f);
 }
 
@@ -1210,6 +1210,16 @@ document.addEventListener("drop", e => {
   dropZone().classList.remove("is-dragover");
   const f = e.dataTransfer.files[0];
   if (f && !$("listForm").hidden && $("listForm").contains(e.target)) setListImage(f);
+});
+// Clipboard-оос зураг буулгах (Ctrl+V / ⌘V): «Жагсаалтаар бүрдүүлэх» хэсэг нээлттэй үед. Текст буулгавал хэвийнээрээ.
+document.addEventListener("paste", e => {
+  if ($("listForm").hidden || $("view-documents").hidden) return;
+  const file = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
+  if (!file) return;
+  e.preventDefault();
+  // Дэлгэцийн зураг «image.png» нэртэй ирдэг тул ойлгомжтой нэр өгнө
+  const named = new File([file], `Буулгасан_зураг_${today()}.${file.type.split("/")[1] || "png"}`, { type: file.type });
+  if (setListImage(named)) toast("Зургийг буулгалаа");
 });
 
 // --- Эхлэл ----------------------------------------------------------------------------
