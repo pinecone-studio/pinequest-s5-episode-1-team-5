@@ -37,7 +37,7 @@ const restore = plan => {
   if (plan?.loading) { delete plan.loading; plan.error = "Жагсаалт гаргаж байх үед side panel хаагдсан. Дахин асууна уу."; }
   return plan;
 };
-const saved = await chrome.storage.local.get(["last", "chat", "listPlan", "tab", "docRef"]);
+const saved = await chrome.storage.local.get(["last", "chat", "listPlan", "docRef"]);
 let state = saved.last || null; // { snap, prevTakenAt, changes, summary }
 // [{ role: "user" | "assistant", text, links?, plan? }] — энэ компьютерт хадгална, шинээр «Шинжлэх» дарахад цэвэрлэнэ
 let chat = (saved.chat || []).map(m => (restore(m.plan), m));
@@ -53,8 +53,9 @@ onCatalogStale(({ at }) => {
 });
 
 const ui = {
-  // «Тойм» (хураангуй, chat) ба «Бичиг баримт» (жагсаалт, цуглуулах). Сүүлд нээснийг санана (өмнөх хувилбарын "list" → documents).
-  tab: ["documents", "list"].includes(saved.tab) ? "documents" : "overview",
+  // Нэг дэлгэц: «Тойм» (хураангуй, chat). "documents" нь жагсаалт нээсэн үед түүний оронд гарах хэсэг («← Тойм руу буцах»).
+  // Side panel-ийг дахин нээхэд үргэлж «Тойм»-оос эхэлнэ.
+  tab: "overview",
   docRef: saved.docRef ?? null, // «Бичиг баримт» табд харагдах жагсаалт: chat-ийн мессежийн дугаар эсвэл "list"
   analyzing: false,
   asking: false,
@@ -137,10 +138,10 @@ async function runAnalyze() {
   setStatus("e-Mongolia-оос мэдээлэл татаж байна…");
   try {
     const [tab] = await chrome.tabs.query({ url: EM_TAB_URL });
-    if (!tab) { ui.needsLogin = true; throw new Error("e-Mongolia нээлттэй алга. «e-Mongolia нээх» дарж нэвтрээд дахин «Шинжлэх» дарна уу."); }
+    if (!tab) { ui.needsLogin = true; throw new Error("e-Mongolia нээлттэй алга. «e-Mongolia нээх» дарж нэвтрээд дахин оролдоно уу."); }
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
     const res = await chrome.tabs.sendMessage(tab.id, { type: "COLLECT", sources: buildSources(), timeoutMs: XYP_TIMEOUT_MS });
-    if (res?.error === "NOT_LOGGED_IN") { ui.needsLogin = true; throw new Error("e-Mongolia-д нэвтрээгүй байна (эсвэл session дууссан). Нэвтрээд дахин «Шинжлэх» дарна уу."); }
+    if (res?.error === "NOT_LOGGED_IN") { ui.needsLogin = true; throw new Error("e-Mongolia-д нэвтрээгүй байна (эсвэл session дууссан). Нэвтрээд дахин оролдоно уу."); }
 
     const snap = { takenAt: new Date().toISOString(), data: {}, status: {} };
     for (const s of SOURCES) {
@@ -472,6 +473,7 @@ async function deleteList(ref) {
     ui.listStatus = null;
   } else chat[+ref].plan = { error: "Жагсаалтыг устгасан." };
   ui.docRef = null;
+  ui.tab = "overview";
   render();
   toast("Жагсаалт устгагдлаа");
 }
@@ -560,9 +562,8 @@ function render() {
   $("main").hidden = !main;
   if (!main) renderOnboarding();
   else {
-    renderTabs();
+    renderView();
     if (ui.tab === "overview") renderOverview(); else renderDocuments();
-    renderBadge();
     $("askSend").disabled = ui.asking;
   }
 
@@ -577,7 +578,7 @@ function render() {
 
 // Chat, жагсаалтыг энэ компьютерт хадгална (side panel хаагаад нээхэд алга болохгүй)
 function save() {
-  chrome.storage.local.set({ chat: chat.filter(m => !m.pending), listPlan, tab: ui.tab, docRef: ui.docRef }).catch(() => {});
+  chrome.storage.local.set({ chat: chat.filter(m => !m.pending), listPlan, docRef: ui.docRef }).catch(() => {});
 }
 
 // Явц, алдааны мөр. needsLogin бол «e-Mongolia нээх» товчтой.
@@ -606,28 +607,37 @@ function pill(cls, label) {
 
 function renderOnboarding() {
   $("startBtn").disabled = ui.analyzing;
-  $("startBtn").innerHTML = ui.analyzing ? `${spinner()} Шинжилж байна…` : "Шинжилж эхлэх";
+  $("startBtn").innerHTML = ui.analyzing ? `${spinner()} Шинжилж байна…` : "Зөвшөөрч байна";
   setNotice($("onbStatus"), ui.status, ui.needsLogin);
 }
 
-// Табууд (WAI-ARIA tabs): сонгосон таб aria-selected="true", tabindex=0; бусад нь false, -1 (Tab товчоор зөвхөн сонгосонд очно)
-const TABS = ["overview", "documents"];
-function renderTabs() {
-  for (const t of TABS) {
-    const on = ui.tab === t;
-    $(`tab-${t}`).setAttribute("aria-selected", String(on));
-    $(`tab-${t}`).tabIndex = on ? 0 : -1;
-    $(`view-${t}`).hidden = !on;
-  }
-  $("composer").hidden = ui.tab !== "overview" || !state?.snap;
+// Нэг дэлгэц: «Тойм» эсвэл (жагсаалт нээсэн үед) бичиг баримтын хэсэг. Асуулт бичих талбар зөвхөн «Тойм»-д.
+function renderView() {
+  const onOverview = ui.tab === "overview";
+  $("view-overview").hidden = !onOverview;
+  $("view-documents").hidden = onOverview;
+  $("composer").hidden = !onOverview || !state?.snap;
 }
 
-function renderBadge() {
-  const p = activeDoc() && progress(activeDoc().plan);
-  const left = p ? p.total - p.ready : 0;
-  $("docBadge").hidden = left <= 0;
-  $("docBadge").textContent = String(left);
-  $("docBadge").setAttribute("aria-label", `${left} бичиг баримт дутуу`);
+// Зөвшөөрлийн асуулт: «Шинжлэх»-ийн өмнө AI руу юу явахыг хэлж зөвшөөрөл авна (анх нээх дэлгэц, шинжлээгүй «Тойм»)
+const CONSENT_TEXT = "Таны e-Mongolia дээрх мэдээллийг татаж, хувийн мэдээллийг нь нууцалсны дараа AI-аар шинжилнэ. Та зөвшөөрч байна уу?";
+
+// «Тойм» дахь «Жагсаалтаар бүрдүүлэх»: байгууллагаас өгсөн жагсаалтаар гаргасан жагсаалт, эсвэл шинээр оруулах
+function listEntryHtml() {
+  const card = isReady(listPlan) ? listCard(listPlan, "list") : `
+    <button type="button" class="list-card" data-action="go-list">
+      <span class="tile tile--accent">${icon("clipboard", 20)}</span>
+      <span class="row-text">
+        <span class="row-title">Жагсаалтаар бүрдүүлэх</span>
+        <span class="row-sub">Банк, сургууль, элчин сайдын яамны жагсаалтаас лавлагаануудыг татна.</span>
+      </span>
+      <span class="list-card__open">${icon("arrow", 16)}</span>
+    </button>`;
+  return `
+    <section class="stack" aria-labelledby="list-entry-title">
+      <h2 id="list-entry-title" class="section-title">Байгууллагаас жагсаалт өгсөн үү?</h2>
+      ${card}
+    </section>`;
 }
 
 // «Тойм»: хураангуй, анхааруулга, өөрчлөлт, хэвийн зүйлс, татсан мэдээлэл, асуулт
@@ -638,12 +648,14 @@ function renderOverview() {
       ${notice(ui.status, ui.needsLogin)}
       <div class="empty-state">
         <h2 class="section-title">Мэдээллээ шинжлээгүй байна</h2>
-        <p>e-Mongolia-д нэвтрээд «Шинжлэх» дарвал ЭМД, НДШ, зээл, бичиг баримт, хөрөнгийн мэдээллийг AI-аар хураангуйлна.</p>
+        <p>e-Mongolia-д нэвтэрсэн бол ЭМД, НДШ, зээл, бичиг баримт, хөрөнгийн мэдээллийг AI-аар хураангуйлна.</p>
+        <p class="consent" id="consentText2">${esc(CONSENT_TEXT)}</p>
         <div class="btn-row">
-          <button type="button" class="btn btn--primary" id="analyzeBtn" data-action="analyze" ${ui.analyzing ? "disabled" : ""}>${ui.analyzing ? `${spinner()} Шинжилж байна…` : "Шинжилж эхлэх"}</button>
+          <button type="button" class="btn btn--primary" id="analyzeBtn" data-action="consent" aria-describedby="consentText2" ${ui.analyzing ? "disabled" : ""}>${ui.analyzing ? `${spinner()} Шинжилж байна…` : "Зөвшөөрч байна"}</button>
           <button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>
         </div>
-      </div>`;
+      </div>
+      ${listEntryHtml()}`;
     return;
   }
 
@@ -666,6 +678,7 @@ function renderOverview() {
     ${notice(ui.status, ui.needsLogin)}
     ${sm ? summaryHtml(sm) : !ui.analyzing && !ui.status ? `<p class="empty-hint">AI хураангуй гараагүй байна. «Шинэчлэх» дарж дахин оролдоно уу.</p>` : ""}
     ${sourcesHtml(snap)}
+    ${listEntryHtml()}
     <section class="stack" aria-labelledby="chat-title">
       <h2 id="chat-title" class="section-title">Асуулт</h2>
       <div class="messages">${messagesHtml()}</div>
@@ -1020,7 +1033,19 @@ function confirmBox(title, text = "", { ok = "Тийм", danger = false } = {}) 
   dlg.returnValue = "";
   dlg.showModal();
   $("confirmCancel").focus();
-  return new Promise(resolve => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true }));
+  // Товч дарахыг submit-ээр шууд барина: close event хуудас нуугдсан үед хойшлогдож болдог. Esc → close.
+  return new Promise(resolve => {
+    const form = dlg.querySelector("form");
+    const done = value => {
+      form.removeEventListener("submit", onSubmit);
+      dlg.removeEventListener("close", onClose);
+      resolve(value);
+    };
+    const onSubmit = e => done(e.submitter?.value === "ok");
+    const onClose = () => done(dlg.returnValue === "ok");
+    form.addEventListener("submit", onSubmit);
+    dlg.addEventListener("close", onClose);
+  });
 }
 
 function scrollToBottom() {
@@ -1090,6 +1115,10 @@ async function onClick(e) {
   const d = plan?.em?.[+b.dataset.i];
   switch (action) {
     case "analyze": return runAnalyze();
+    case "consent":
+      // Зөвшөөрсөн цагийг энэ компьютерт тэмдэглэнэ («Хадгалсан мэдээллээ устгах» дарвал арилна)
+      await chrome.storage.local.set({ consentAt: new Date().toISOString() });
+      return runAnalyze();
     case "open-em": return chrome.tabs.create({ url: EM_HOME });
     case "copy-answer": return copyAnswer(chat[+b.dataset.mi]);
     case "tab": return setTab(b.dataset.tab);
@@ -1105,6 +1134,7 @@ async function onClick(e) {
     }
     case "go-list":
       ui.started = true;
+      ui.listForm = true;
       setTab("documents");
       return $("listText").focus();
     case "go-ask":
@@ -1193,15 +1223,6 @@ document.addEventListener("keydown", e => {
     closeMenu();
     $(btn)?.focus();
   }
-});
-// Таб хооронд гараар: ←/→ өмнөх/дараагийн (тойрно), Home/End эхний/сүүлийн таб
-document.querySelector(".tabs").addEventListener("keydown", e => {
-  const i = Math.max(0, TABS.indexOf(ui.tab)), n = TABS.length;
-  const to = { ArrowLeft: (i - 1 + n) % n, ArrowRight: (i + 1) % n, Home: 0, End: n - 1 }[e.key];
-  if (to === undefined) return;
-  e.preventDefault();
-  setTab(TABS[to]);
-  $(`tab-${TABS[to]}`).focus();
 });
 $("askForm").onsubmit = e => { e.preventDefault(); ask($("askInput").value); };
 $("listImg").onchange = () => {
