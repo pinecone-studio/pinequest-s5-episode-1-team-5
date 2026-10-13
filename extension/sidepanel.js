@@ -524,15 +524,16 @@ function renderOnboarding() {
   setNotice($("onbStatus"), ui.status, ui.needsLogin);
 }
 
+// Табууд (WAI-ARIA tabs): сонгосон таб aria-selected="true", tabindex=0; бусад нь false, -1 (Tab товчоор зөвхөн сонгосонд очно)
+const TABS = ["overview", "documents"];
 function renderTabs() {
-  const onOverview = ui.tab === "overview";
-  $("tab-overview").setAttribute("aria-selected", String(onOverview));
-  $("tab-documents").setAttribute("aria-selected", String(!onOverview));
-  $("tab-overview").tabIndex = onOverview ? 0 : -1;
-  $("tab-documents").tabIndex = onOverview ? -1 : 0;
-  $("view-overview").hidden = !onOverview;
-  $("view-documents").hidden = onOverview;
-  $("composer").hidden = !onOverview || !state?.snap;
+  for (const t of TABS) {
+    const on = ui.tab === t;
+    $(`tab-${t}`).setAttribute("aria-selected", String(on));
+    $(`tab-${t}`).tabIndex = on ? 0 : -1;
+    $(`view-${t}`).hidden = !on;
+  }
+  $("composer").hidden = ui.tab !== "overview" || !state?.snap;
 }
 
 function renderBadge() {
@@ -1074,13 +1075,14 @@ document.addEventListener("keydown", e => {
     $(btn)?.focus();
   }
 });
-// Таб хооронд сумаар шилжих
+// Таб хооронд гараар: ←/→ өмнөх/дараагийн (тойрно), Home/End эхний/сүүлийн таб
 document.querySelector(".tabs").addEventListener("keydown", e => {
-  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const i = Math.max(0, TABS.indexOf(ui.tab)), n = TABS.length;
+  const to = { ArrowLeft: (i - 1 + n) % n, ArrowRight: (i + 1) % n, Home: 0, End: n - 1 }[e.key];
+  if (to === undefined) return;
   e.preventDefault();
-  const next = ui.tab === "overview" ? "documents" : "overview";
-  setTab(next);
-  $(next === "overview" ? "tab-overview" : "tab-documents").focus();
+  setTab(TABS[to]);
+  $(`tab-${TABS[to]}`).focus();
 });
 $("askForm").onsubmit = e => { e.preventDefault(); ask($("askInput").value); };
 $("listImg").onchange = showImgName;
