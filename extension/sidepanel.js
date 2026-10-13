@@ -508,9 +508,16 @@ function notice(st, needsLogin = false) {
   return `<div class="notice notice--${esc(st.cls)}" role="status">${ic}<div class="notice__body"><span>${esc(st.text)}</span>${needsLogin
     ? `<button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>` : ""}</div></div>`;
 }
+// onbStatus, listStatus нь aria-live="polite" талбар: дэлгэц уншигч өөрчлөлтийг нь уншина.
+// Талбарыг нуухгүй (hidden-ийн доторх өөрчлөлтийг зарладаггүй), хоосон үед CSS-ээр зай эзлэхгүй.
+// Агуулга өөрчлөгдөөгүй бол дахин бичихгүй — render() бүрт ижил мэдэгдлийг дахин уншуулахгүйн тулд.
+const shownNotice = new WeakMap();
 function setNotice(el, st, needsLogin) {
-  el.hidden = !st;
-  el.innerHTML = notice(st, needsLogin);
+  const html = notice(st, needsLogin).replace(' role="status"', ""); // гаднах aria-live хангалттай
+  if (shownNotice.get(el) === html) return;
+  shownNotice.set(el, html);
+  el.hidden = false;
+  el.innerHTML = html;
 }
 
 function pill(cls, label) {
