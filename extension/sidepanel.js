@@ -493,6 +493,7 @@ function render() {
     const el = document.getElementById(focusedId);
     if (el && el !== document.activeElement) el.focus({ preventScroll: true });
   }
+  updateCounters(); // асуулт илгээсний дараа талбар хоосорсон байж болно
   save();
 }
 
@@ -1118,6 +1119,16 @@ document.querySelectorAll("[data-privacy-points]").forEach(ul => {
 });
 $("chips").innerHTML = SUGGESTIONS.map(([label, q]) => `<button type="button" class="chip" data-action="suggest" data-q="${esc(q)}" title="${esc(q)}">${esc(label)}</button>`).join("");
 $("listText").value = listPlan?.text || "";
+
+// Тэмдэгтийн тоолуур: асуулт (500), жагсаалт (5000) — хязгаарыг талбарын maxlength-ээс авна
+function updateCounters() {
+  document.querySelectorAll("[data-counter-for]").forEach(el => {
+    const input = $(el.dataset.counterFor), max = input.maxLength, n = input.value.length;
+    el.textContent = `${n} / ${max}`;
+    el.classList.toggle("counter--near", n >= max * 0.9);
+  });
+}
+["askInput", "listText"].forEach(id => $(id).addEventListener("input", updateCounters));
 
 // Хуучин хувилбарын өгөгдөл таарахгүй бол цэвэрлээд дахин зурна
 try { render(); }
