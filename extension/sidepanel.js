@@ -1,7 +1,7 @@
 import { SOURCES, buildSources } from "./sources.js";
 import { redact, diff, putSnapshot, previousSnapshot, trimForAi, shape } from "./lib.js";
 import { findServices, referenceTitles, matchService, candidates, localPlan, learnKey } from "./catalog.js";
-import { SERVICE_URL } from "./config.js";
+import { SERVICE_URL, EM_TAB_URL } from "./config.js";
 import { makeZip, dataUrlBytes } from "./zip.js";
 import { icon, spinner } from "./icons.js";
 import { SUGGESTIONS, FETCH_ITEMS, PRIVACY_POINTS, DOC_STATUS } from "./constants.js";
@@ -108,7 +108,7 @@ async function runAnalyze() {
   ui.menu = null;
   setStatus("e-Mongolia-оос мэдээлэл татаж байна…");
   try {
-    const [tab] = await chrome.tabs.query({ url: "https://e-mongolia.mn/*" });
+    const [tab] = await chrome.tabs.query({ url: EM_TAB_URL });
     if (!tab) { ui.needsLogin = true; throw new Error("e-Mongolia нээлттэй алга. «e-Mongolia нээх» дарж нэвтрээд дахин «Шинжлэх» дарна уу."); }
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
     const res = await chrome.tabs.sendMessage(tab.id, { type: "COLLECT", sources: buildSources() });
