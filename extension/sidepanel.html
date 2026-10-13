@@ -54,30 +54,32 @@
     <footer class="footer">
       <div class="wrap footer__inner">
         <div id="onbStatus" class="live-region" aria-live="polite"></div>
-        <button type="button" class="btn btn--primary btn--lg" data-action="analyze" id="startBtn">Шинжилж эхлэх</button>
+        <p class="consent" id="consentText">Таны e-Mongolia дээрх мэдээллийг татаж, хувийн мэдээллийг нь нууцалсны дараа AI-аар шинжилнэ. Та зөвшөөрч байна уу?</p>
+        <button type="button" class="btn btn--primary btn--lg" data-action="consent" id="startBtn" aria-describedby="consentText">Зөвшөөрч байна</button>
         <p class="footnote">Эхлээд e-Mongolia-д ДАН-аар нэвтэрсэн байх шаардлагатай ·
           <button type="button" class="link-inline" data-action="open-em">e-Mongolia нээх</button></p>
       </div>
     </footer>
   </div>
 
-  <!-- 2. Үндсэн дэлгэц: Тойм (хураангуй + асуулт) ба Бичиг баримт (жагсаалт, цуглуулах) -->
+  <!-- 2. Үндсэн дэлгэц: Тойм (хураангуй, асуулт). Жагсаалт нээхэд түүний оронд бичиг баримтын хэсэг гарна. -->
   <div class="screen" id="main" hidden>
     <header class="topbar">
       <div class="wrap">
-        <div class="tabs" role="tablist" aria-label="Хэсгүүд">
-          <button type="button" role="tab" class="tab" id="tab-overview" aria-controls="view-overview" aria-selected="true" data-action="tab" data-tab="overview">Тойм</button>
-          <button type="button" role="tab" class="tab" id="tab-documents" aria-controls="view-documents" aria-selected="false" tabindex="-1" data-action="tab" data-tab="documents">
-            Бичиг баримт <span class="tab__badge" id="docBadge" hidden></span>
-          </button>
+        <div class="topbar__title">
+          <span class="app-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>
+          </span>
+          <span class="topbar__name">Миний мэдээлэл AI</span>
         </div>
       </div>
     </header>
 
     <main class="scroll" id="scroll">
       <div class="wrap">
-        <section id="view-overview" role="tabpanel" aria-labelledby="tab-overview" class="view"></section>
-        <section id="view-documents" role="tabpanel" aria-labelledby="tab-documents" class="view" hidden>
+        <section id="view-overview" class="view" aria-label="Тойм"></section>
+        <section id="view-documents" class="view" aria-label="Бичиг баримт" hidden>
+          <button type="button" class="link-button back-link" data-action="tab" data-tab="overview">← Тойм руу буцах</button>
           <div id="docsBody" class="view-part"></div>
 
           <!-- Жагсаалтаар бүрдүүлэх: дахин зурагдахгүй (бичсэн текст, сонгосон зураг хадгалагдана) -->
