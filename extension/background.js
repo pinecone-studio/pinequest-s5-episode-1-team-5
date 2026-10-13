@@ -23,7 +23,8 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const safeName = s => s.replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 80);
 
-function waitForDownload(timeoutMs) {
+// tabId: цуглуулж буй таб. Зөвхөн тэр таб болон түүнээс нээгдсэн табын PDF-ийг авна.
+function waitForDownload(timeoutMs, tabId) {
   let cancel;
   const p = new Promise(resolve => {
     cancel = () => { cleanup(); resolve(null); };
@@ -32,11 +33,13 @@ function waitForDownload(timeoutMs) {
       if (d.state?.current === "complete") { cleanup(); resolve(d.id); }
       if (d.state?.current === "interrupted") { cleanup(); resolve(null); }
     }
-    function onTab(tabId, info, tab) {
-      // PDF шинэ таб дээр нээгдвэл татаж аваад табыг хаана
+    function onTab(id, info, tab) {
+      // Хэрэглэгчийн өөр таб дээр нээсэн PDF-д хүрэхгүй
+      if (id !== tabId && tab.openerTabId !== tabId) return;
+      // PDF шинэ таб дээр нээгдвэл татаж аваад тэр табыг хаана (цуглуулж буй табыг хаахгүй)
       if (info.status === "complete" && /\.pdf($|\?)/i.test(tab.url || "")) {
         chrome.downloads.download({ url: tab.url });
-        chrome.tabs.remove(tabId);
+        if (id !== tabId) chrome.tabs.remove(id);
       }
     }
     function cleanup() {
@@ -118,7 +121,7 @@ async function collect(item, index, folder) {
     startYear: y - years, endYear: y, subject: item.fill?.subject || "self", language: item.fill?.language || "англи",
     addressee: (foreign && item.fill?.addresseeForeign) || item.fill?.addressee || "",
   };
-  const dl = waitForDownload(90000);
+  const dl = waitForDownload(90000, tab.id);
   try {
     return await getPdf(tab.id, dl, fill);
   } finally {
