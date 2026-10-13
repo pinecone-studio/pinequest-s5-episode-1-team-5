@@ -650,4 +650,6 @@ textarea { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+  /* Ачаалж байгааг харуулах эргэлтийг зогсоохгүй (явц харагдах ёстой), харин 3 дахин удаашруулна */
+  .spin { animation-duration: 2.7s; }
 }
