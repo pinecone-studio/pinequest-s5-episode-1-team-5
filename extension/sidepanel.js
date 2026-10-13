@@ -694,7 +694,8 @@ function messagesHtml() {
       : p.loading || p.regenerating ? `<div class="typing" role="status">${spinner(16)} Бичиг баримтын жагсаалт гаргаж байна…</div>`
       : p.error ? `<p class="reply__error">${esc(p.error)}</p>`
       : listCard(p, String(mi));
-    return `<div class="reply${m.error ? " reply--error" : ""}"><p>${esc(m.text)}</p>${links ? `<div class="service-links">${links}</div>` : ""}${plan}</div>`;
+    const copy = m.error ? "" : `<button type="button" class="swap reply__copy" data-action="copy-answer" data-mi="${mi}" aria-label="Хариултыг хуулах">${icon("copy", 14)} Хуулах</button>`;
+    return `<div class="reply${m.error ? " reply--error" : ""}"><p>${esc(m.text)}</p>${links ? `<div class="service-links">${links}</div>` : ""}${plan}${copy}</div>`;
   }).join("");
 }
 
@@ -952,6 +953,18 @@ function setTab(tab) {
   $("scroll").scrollTop = 0;
 }
 
+// AI-ийн хариулт (санал болгосон үйлчилгээний холбоосын хамт)
+async function copyAnswer(m) {
+  if (!m) return;
+  const links = (m.links || []).map(l => `${l.title}: https://e-mongolia.mn${l.path}`);
+  try {
+    await navigator.clipboard.writeText([m.text, ...links].join("\n"));
+    toast("Хариулт хуулагдлаа");
+  } catch {
+    toast("Хуулж чадсангүй");
+  }
+}
+
 async function copyPlan(plan) {
   try {
     await navigator.clipboard.writeText(planText(plan));
@@ -997,6 +1010,7 @@ async function onClick(e) {
   switch (action) {
     case "analyze": return runAnalyze();
     case "open-em": return chrome.tabs.create({ url: EM_HOME });
+    case "copy-answer": return copyAnswer(chat[+b.dataset.mi]);
     case "tab": return setTab(b.dataset.tab);
     case "toggle-menu": ui.menu = ui.menu === b.dataset.menu ? null : b.dataset.menu; return render();
     case "reset": return resetInfo();
