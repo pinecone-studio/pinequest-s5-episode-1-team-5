@@ -701,6 +701,8 @@ textarea { font: inherit; color: inherit; }
 }
 .textarea:focus { outline: none; border-color: var(--accent); }
 .textarea::placeholder { color: var(--subtle); }
+.counter { margin-top: -6px; font-size: 12px; color: var(--subtle); text-align: right; font-variant-numeric: tabular-nums; }
+.counter--near { color: var(--warn); font-weight: 500; }
 .file-pick {
   position: relative;
   display: flex; align-items: center; gap: 10px;
