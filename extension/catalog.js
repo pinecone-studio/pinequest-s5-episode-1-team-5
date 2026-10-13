@@ -31,18 +31,33 @@ export function localPlan(text) {
 const CATALOG_URL = "https://e-mongolia.mn/portal/main-portal/api/content/search?currentPage=0&pageSize=5000&query=";
 const CATALOG_TTL = 24 * 3600 * 1000;
 
+// Шинэчилж чадаагүй тул хуучин хуулбар ашиглах үед дуудагдана: fn({ at, error }) — side panel хэрэглэгчид мэдэгдэнэ
+let onStale = null;
+export const onCatalogStale = fn => { onStale = fn; };
+// Татаж чадаагүй бол 5 минут дахин оролдохгүй (нэг жагсаалтын мөр бүрт fetch хийхгүйн тулд)
+const RETRY_AFTER = 5 * 60 * 1000;
+let failedAt = 0;
+
 export async function loadCatalog(force = false) {
   const { catalog, catalogAt } = await chrome.storage.local.get(["catalog", "catalogAt"]);
   if (!force && catalog?.length && Date.now() - catalogAt < CATALOG_TTL) return prepareCatalog(catalog);
   try {
-    const j = await (await fetch(CATALOG_URL)).json();
+    if (!force && catalog?.length && Date.now() - failedAt < RETRY_AFTER) throw new Error("саяхан татаж чадаагүй");
+    const r = await fetch(CATALOG_URL);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
     const list = (j.data?.list || []).filter(x => x.contentType === "SERVICE")
       .map(x => ({ title: x.title, path: x.path, tags: x.tags || [], popularity: x.popularity || 0 }));
     if (!list.length) throw new Error("хоосон");
     await chrome.storage.local.set({ catalog: list, catalogAt: Date.now() });
+    failedAt = 0;
     return prepareCatalog(list);
   } catch (e) {
-    if (catalog?.length) return prepareCatalog(catalog); // хуучин хуулбараар үргэлжлүүлнэ
+    if (!failedAt || Date.now() - failedAt >= RETRY_AFTER) failedAt = Date.now();
+    if (catalog?.length) { // хуучин хуулбараар үргэлжлүүлнэ
+      onStale?.({ at: catalogAt, error: e.message });
+      return prepareCatalog(catalog);
+    }
     throw new Error("e-Mongolia-ийн үйлчилгээний жагсаалтыг татаж чадсангүй: " + e.message, { cause: e });
   }
 }
