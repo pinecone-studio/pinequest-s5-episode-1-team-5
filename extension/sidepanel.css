@@ -475,6 +475,12 @@ svg { display: block; flex: none; }
 .sheet[open] { display: flex; flex-direction: column; gap: 16px; }
 .sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sheet__head h2 { font-size: 17px; font-weight: 600; }
+.confirm { width: min(380px, calc(100vw - 32px)); }
+.confirm__form { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.confirm__title { font-size: 16px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.confirm__text { font-size: 14px; line-height: 1.5; color: var(--text-3); }
+.confirm__actions { justify-content: flex-end; margin-top: 6px; }
+.confirm__actions .btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
 
 .toast {
   position: fixed; left: 50%; bottom: 20px; z-index: 50;

@@ -159,7 +159,7 @@ function aiPayload() {
 // Сар бүрийн агшинг (snapshots) үлдээнэ — дараа сард өөрчлөлтийг харьцуулахад хэрэгтэй, интерфэйсэд харагддаггүй.
 async function resetInfo() {
   ui.menu = null;
-  if (!confirm("Хураангуй, асуулт хариулт, бичиг баримтын жагсаалтыг цэвэрлээд шинээр эхлэх үү?")) return render();
+  if (!(await confirmBox("Дахин эхлүүлэх үү?", "Хураангуй, асуулт хариулт, бичиг баримтын жагсаалтыг цэвэрлээд шинээр эхэлнэ.", { ok: "Дахин эхлүүлэх", danger: true }))) return render();
   state = null;
   chat = [];
   Object.assign(ui, { status: null, needsLogin: false, tab: "overview" });
@@ -394,7 +394,7 @@ const norm = s => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 async function regenerate(ref) {
   const plan = planOf(ref);
   if (!plan || plan.running) return;
-  if (!confirm("Шинээр гаргавал одоогийн тэмдэглэгээ арилна. Үргэлжлүүлэх үү?")) return;
+  if (!(await confirmBox("Жагсаалтыг шинээр гаргах уу?", "AI-аас шинээр гаргавал одоогийн тэмдэглэгээ арилна.", { ok: "Шинээр гаргах" }))) return;
   if (ref === "list") return parseList(true);
   const msg = chat[+ref];
   plan.regenerating = true; render();
@@ -405,7 +405,7 @@ async function regenerate(ref) {
 
 async function deleteList(ref) {
   const plan = planOf(ref);
-  if (!plan || plan.running || !confirm(`«${plan.title}» жагсаалтыг устгах уу?`)) return;
+  if (!plan || plan.running || !(await confirmBox(`«${plan.title}» жагсаалтыг устгах уу?`, "", { ok: "Устгах", danger: true }))) return;
   if (ref === "list") {
     listPlan = null;
     $("listText").value = "";
@@ -918,6 +918,21 @@ function toast(message) {
   toastTimer = setTimeout(() => { $("toast").hidden = true; }, 2800);
 }
 
+// Хөтчийн confirm()-ийн оронд дизайнд тохирсон цонх (<dialog id="confirmDialog">). «Тийм» дарвал true.
+// Esc, «Болих» → false. Анхдагч focus «Болих» дээр: устгах үйлдлийг Enter-ээр санамсаргүй батлахгүй.
+function confirmBox(title, text = "", { ok = "Тийм", danger = false } = {}) {
+  const dlg = $("confirmDialog");
+  $("confirmTitle").textContent = title;
+  $("confirmText").textContent = text;
+  $("confirmText").hidden = !text;
+  $("confirmOk").textContent = ok;
+  $("confirmOk").className = `btn ${danger ? "btn--danger" : "btn--primary"}`;
+  dlg.returnValue = "";
+  dlg.showModal();
+  $("confirmCancel").focus();
+  return new Promise(resolve => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true }));
+}
+
 function scrollToBottom() {
   $("scroll").scrollTop = $("scroll").scrollHeight;
 }
@@ -939,7 +954,7 @@ async function copyPlan(plan) {
 }
 
 async function clearData() {
-  if (!confirm("Хураангуй, асуулт хариулт, жагсаалт, сар бүрийн агшин, санасан сонголтууд бүгд энэ компьютерээс устна. Үргэлжлүүлэх үү?")) return;
+  if (!(await confirmBox("Хадгалсан мэдээллээ устгах уу?", "Хураангуй, асуулт хариулт, жагсаалт, сар бүрийн агшин, санасан сонголтууд бүгд энэ компьютерээс устна.", { ok: "Устгах", danger: true }))) return;
   await chrome.storage.local.clear();
   state = null;
   chat = [];

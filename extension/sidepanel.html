@@ -138,6 +138,18 @@
     <button type="button" class="btn btn--danger-outline" data-action="clear-data">Хадгалсан мэдээллээ устгах</button>
   </dialog>
 
+  <!-- Баталгаажуулах цонх (хөтчийн confirm()-ийн оронд, sidepanel.js confirmBox()) -->
+  <dialog class="sheet confirm" id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <form method="dialog" class="confirm__form">
+      <h2 id="confirmTitle" class="confirm__title"></h2>
+      <p id="confirmText" class="confirm__text"></p>
+      <div class="btn-row confirm__actions">
+        <button type="submit" class="btn btn--ghost" value="cancel" id="confirmCancel">Болих</button>
+        <button type="submit" class="btn btn--primary" value="ok" id="confirmOk">Тийм</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script type="module" src="sidepanel.js"></script>
