@@ -11,8 +11,20 @@ const FALLBACK = ["Татах", "Татаж авах", "PDF татах"];
 
 let pendingName = null; // "<зорилго>/NN_нэр"
 
+// Татагдаж буй файл e-Mongolia-оос ирсэн эсэх (blob:https://e-mongolia.mn/… ч мөн адил)
+function fromEmongolia(item) {
+  return [item.url, item.finalUrl, item.referrer].some(u => {
+    try {
+      const host = new URL(String(u || "").replace(/^blob:/, "")).hostname;
+      return host === "e-mongolia.mn" || host.endsWith(".e-mongolia.mn");
+    } catch { return false; }
+  });
+}
+
+// Цуглуулж байх үед зөвхөн e-Mongolia-гийн PDF-ийн нэрийг өөрчилнө.
+// Хэрэглэгчийн зэрэг татаж буй бусад файл (өөр сайтаас, extension-ий ZIP) нэрээ хадгална.
 chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
-  if (pendingName) {
+  if (pendingName && fromEmongolia(item)) {
     const date = new Date().toISOString().slice(0, 10);
     suggest({ filename: `${FOLDER}/${pendingName}_${date}.pdf`, conflictAction: "uniquify" });
   } else suggest();
