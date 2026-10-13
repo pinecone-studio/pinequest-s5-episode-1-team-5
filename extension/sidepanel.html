@@ -53,7 +53,7 @@
     </div>
     <footer class="footer">
       <div class="wrap footer__inner">
-        <div id="onbStatus" hidden></div>
+        <div id="onbStatus" class="live-region" aria-live="polite"></div>
         <button type="button" class="btn btn--primary btn--lg" data-action="analyze" id="startBtn">Шинжилж эхлэх</button>
         <p class="footnote">Эхлээд e-Mongolia-д ДАН-аар нэвтэрсэн байх шаардлагатай ·
           <button type="button" class="link-inline" data-action="open-em">e-Mongolia нээх</button></p>
@@ -99,7 +99,7 @@
               <input type="file" id="listImg" accept="image/png, image/jpeg, image/webp">
             </label>
             <button type="button" class="btn btn--primary btn--block" id="parseBtn" data-action="parse">Жагсаалтыг шинжлэх</button>
-            <div id="listStatus" hidden></div>
+            <div id="listStatus" class="live-region" aria-live="polite"></div>
             <button type="button" class="link-button" id="goAskLink" data-action="go-ask" hidden>Эсвэл «Тойм» хэсэгт зорилгоо бичээд жагсаалт гаргуулах</button>
           </section>
 

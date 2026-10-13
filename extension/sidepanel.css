@@ -513,6 +513,7 @@ textarea { font: inherit; color: inherit; }
   font-size: 13px; line-height: 1.45;
 }
 .notice > svg { margin-top: 1px; }
+.live-region:empty { position: absolute; } /* хоосон үед flex gap эзлэхгүй, гэхдээ a11y tree-д үлдэнэ */
 .notice__body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; overflow-wrap: anywhere; }
 .notice--err { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 .notice--warn { background: var(--warn-bg); border-color: #F3D9A8; color: var(--warn); }
