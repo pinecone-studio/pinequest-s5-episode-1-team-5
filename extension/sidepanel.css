@@ -60,6 +60,74 @@
   --font: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Бараан горим: системийн тохиргоо (prefers-color-scheme: dark) бол өнгөнүүдийг дахин тодорхойлно */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ground: #0F1620;
+    --surface: #17202B;
+    --surface-sunk: #1D2733;
+    --tabs-bg: #1D2733;
+    --border: #2A3644;
+    --border-strong: #3A4859;
+    --divider: #243040;
+
+    --text: #E6EDF5;
+    --text-2: #CFD8E3;
+    --text-3: #B6C2D0;
+    --muted: #97A5B7;
+    --subtle: #8796A9;
+    --decor: #5F6C7D;
+    --icon: #9DB7DA;
+
+    --accent: #3B7BEA;
+    --accent-hover: #5A92F0;
+    --accent-text: #8DB5FF;
+    --accent-soft: #1A2A44;
+    --accent-border: #2E4A78;
+
+    --ok: #74D6A0;
+    --ok-bg: #12301F;
+    --warn: #F2BC66;
+    --warn-bg: #33270F;
+    --neutral: #AAB6C5;
+    --neutral-bg: #232D39;
+
+    --danger: #F47C69;
+    --danger-hover: #F7998A;
+    --danger-bg: #2D1714;
+    --danger-border: #5C2B24;
+    --danger-tile: #45211B;
+    --danger-title: #FFDAD4;
+    --danger-text: #F5BBB1;
+    --danger-label: #E6A296;
+    --danger-pill: #FF9D8E;
+    --danger-pill-bg: #45211B;
+  }
+  /* :root-ын хувьсагч бус, шууд бичсэн өнгөнүүд. Энэ блок файлын эхэнд байгаа тул :root угтвараар
+     эрэмбийг (specificity) нэмж, доор бичигдсэн анхны дүрмийг давна. */
+  /* Арын зургийг бараан давхаргаар бүдгэрүүлж, доод талд нь --ground руу уусгана */
+  :root .topbar {
+    background:
+      linear-gradient(180deg, rgba(15, 22, 32, 0.55), rgba(15, 22, 32, 0.7) calc(100% - 18px), var(--ground) 100%),
+      url(images/background.webp) left 50% bottom -8vw / 130% auto no-repeat,
+      #142238;
+  }
+  :root .hero {
+    background:
+      linear-gradient(180deg, rgba(15, 22, 32, 0.55), rgba(15, 22, 32, 0.7) calc(100% - 18px), var(--ground) 100%),
+      url(images/background.webp) left 50% bottom -10vw / 160% auto no-repeat,
+      #142238;
+  }
+  :root .topbar .tabs { background: rgba(23, 32, 43, 0.7); border-color: rgba(255, 255, 255, 0.08); }
+  :root .status-row:hover { background: var(--surface-sunk); }
+  :root .notice--warn, :root .alert--warning { border-color: #5A4417; }
+  :root .notice--ok { border-color: #1F5135; }
+  :root .alert--warning { background: var(--warn-bg); }
+  :root .tips summary .bulb { color: var(--warn); }
+  :root .toast { color: var(--ground); }
+}
+
 /* ---------- Үндэс ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
