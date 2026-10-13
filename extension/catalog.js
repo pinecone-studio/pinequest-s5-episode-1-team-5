@@ -89,6 +89,7 @@ export function rankCatalog(item, catalog, n = 6) {
   const want = srcs.join(" ").toLowerCase();
   const ws = uniq(words(want));
   const topic = ws.filter(w => !isDoc(w)).length ? ws.filter(w => !isDoc(w)) : ws;
+  if (!topic.length) return []; // хоосон асуулт (эсвэл зөвхөн тэмдэгт): 0/0 = NaN оноо гаргахгүй
   const grams = srcs.map(trigrams);
   const norms = srcs.map(s => words(s).join(" "));
   const foreignOk = /гадаад|англи|foreign|english/.test(want);
