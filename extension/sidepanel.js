@@ -74,7 +74,11 @@ function serviceError(status, body) {
   return `AI сервисээс алдаа ирлээ (${status}). Дахин оролдоно уу.`;
 }
 
+const OFFLINE = "Интернэт холболт алга байна. Холболтоо шалгаад дахин оролдоно уу.";
+
 async function service(path, payload) {
+  // Хүсэлт илгээхээс өмнө: интернэтгүй бол 60 секунд хүлээлгэхгүй, шууд сануулна
+  if (!navigator.onLine) throw new Error(OFFLINE);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), SERVICE_TIMEOUT);
   try {
@@ -90,6 +94,10 @@ async function service(path, payload) {
     clearTimeout(timer);
   }
 }
+
+// Ажиллаж байх үед интернэт тасарвал / сэргэвэл мэдэгдэнэ
+addEventListener("offline", () => toast("Интернэт тасарлаа. AI-тай холбоотой үйлдэл ажиллахгүй."));
+addEventListener("online", () => toast("Интернэт холбогдлоо"));
 
 // Ижил хүсэлтэд үргэлж ижил жагсаалт: AI-ийн /plan, /parse хариуг энэ компьютерт 30 хоног хадгална.
 // «Шинээр гаргах» (fresh) дарвал AI-аас дахин авч хадгалсныг солино.
