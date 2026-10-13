@@ -468,8 +468,28 @@ async function shrinkImage(file, max = 1600) {
 
 function showImgName() {
   const f = $("listImg").files[0];
-  $("imgName").textContent = f ? f.name : "эсвэл жагсаалтын зургийг сонгох";
+  $("imgName").textContent = f ? f.name : "эсвэл жагсаалтын зургийг сонгох, чирж оруулах";
   $("listImg").closest(".file-pick").classList.toggle("has-file", !!f);
+}
+
+// Жагсаалтын зураг (файл сонгох, чирж оруулах): төрөл, хэмжээг шалгаад «listImg»-д оруулна
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_IMAGE_MB = 10;
+function setListImage(file) {
+  if (!IMAGE_TYPES.includes(file.type)) {
+    setListStatus("Зөвхөн PNG, JPEG, WEBP зураг оруулна уу.", "warn");
+    return false;
+  }
+  if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+    setListStatus(`Зураг хэт том байна (${(file.size / 1024 / 1024).toFixed(1)} MB). ${MAX_IMAGE_MB} MB-аас бага зураг сонгоно уу.`, "warn");
+    return false;
+  }
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  $("listImg").files = dt.files;
+  showImgName();
+  setListStatus(null);
+  return true;
 }
 
 // --- Зурах --------------------------------------------------------------------------
@@ -1107,7 +1127,29 @@ document.querySelector(".tabs").addEventListener("keydown", e => {
   $(`tab-${TABS[to]}`).focus();
 });
 $("askForm").onsubmit = e => { e.preventDefault(); ask($("askInput").value); };
-$("listImg").onchange = showImgName;
+$("listImg").onchange = () => {
+  const f = $("listImg").files[0];
+  if (f && !setListImage(f)) $("listImg").value = "";
+  showImgName();
+};
+// Зургийг «Жагсаалтаар бүрдүүлэх» хэсэг рүү чирж оруулах. Өөр газар унагавал side panel зураг руу шилжихгүй.
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes("Files");
+const dropZone = () => $("listImg").closest(".file-pick");
+document.addEventListener("dragover", e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  const inForm = !$("listForm").hidden && $("listForm").contains(e.target);
+  e.dataTransfer.dropEffect = inForm ? "copy" : "none";
+  dropZone().classList.toggle("is-dragover", inForm);
+});
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) dropZone().classList.remove("is-dragover"); });
+document.addEventListener("drop", e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dropZone().classList.remove("is-dragover");
+  const f = e.dataTransfer.files[0];
+  if (f && !$("listForm").hidden && $("listForm").contains(e.target)) setListImage(f);
+});
 
 // --- Эхлэл ----------------------------------------------------------------------------
 document.querySelectorAll("[data-icon]").forEach(el => { el.innerHTML = icon(el.dataset.icon, +el.dataset.size || 18); });
