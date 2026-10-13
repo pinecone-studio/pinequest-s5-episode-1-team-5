@@ -643,6 +643,7 @@ textarea { font: inherit; color: inherit; }
   font-size: 13px; font-weight: 500; text-decoration: none;
 }
 .service-link:hover { border-color: var(--accent-border); background: var(--accent-soft); }
+.reply__copy { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 
 /* ---------- Бичиг баримтын мөр ---------- */
 .doc-head .row-sub { overflow-wrap: anywhere; }
