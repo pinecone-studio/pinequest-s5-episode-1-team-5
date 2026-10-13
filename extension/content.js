@@ -7,14 +7,28 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const token = () => decodeURIComponent(document.cookie.match(/(?:^|;\s*)auth-token=([^;]+)/)?.[1] || "");
 
+  // Нэг сервис гацахад бүх шинжилгээ зогсохгүйн тулд хүсэлт бүрт хугацааны хязгаар (side panel-аас config.js-ийн XYP_TIMEOUT_MS)
+  let timeoutMs = 20000;
+
   async function xyp(serviceCode, customFields) {
-    const r = await fetch("/api/routes/xyp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept-Language": "mn", "X-Auth-Token": token() },
-      body: JSON.stringify({ target: "xyp-data", params: { serviceCode, sid: null, ...(customFields && { customFields }) } }),
-    });
-    if (r.status === 401) return { ok: false, error: "NOT_LOGGED_IN" };
-    const j = await r.json().catch(() => null);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let r, j;
+    try {
+      r = await fetch("/api/routes/xyp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept-Language": "mn", "X-Auth-Token": token() },
+        body: JSON.stringify({ target: "xyp-data", params: { serviceCode, sid: null, ...(customFields && { customFields }) } }),
+        signal: ctrl.signal,
+      });
+      if (r.status === 401) return { ok: false, error: "NOT_LOGGED_IN" };
+      j = await r.json().catch(() => null);
+    } catch (e) {
+      if (e.name === "AbortError") return { ok: false, error: `${timeoutMs / 1000} секундэд хариу ирсэнгүй` };
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
     if (!j) return { ok: false, error: `HTTP ${r.status}` };
     // Хариу: { result, resultCode, message, data, citizenData, … } — citizenData (хувийн мэдээлэл)-г авахгүй
     if (!j.result) return { ok: false, error: j.message || j.error || `resultCode ${j.resultCode ?? "?"}` };
@@ -41,6 +55,7 @@
     if (msg.type !== "COLLECT") return;
     (async () => {
       if (!token()) return reply({ error: "NOT_LOGGED_IN" });
+      if (msg.timeoutMs > 0) timeoutMs = msg.timeoutMs;
       const results = {};
       for (const [i, s] of msg.sources.entries()) {
         chrome.runtime.sendMessage({ type: "PROGRESS", done: i, total: msg.sources.length, name: s.name }).catch(() => {});
