@@ -64,14 +64,26 @@ const ui = {
 // AI ихэвчлэн 10–40 секундэд хариулна. Үүнээс удвал хүлээлгэхгүй, алдаа гаргаж дахин оролдуулна.
 const SERVICE_TIMEOUT = 60_000;
 
+// Серверийн түүхий хариуны оронд хэрэглэгчид ойлгомжтой мессеж (HTTP төлөвөөр)
+function serviceError(status, body) {
+  if (status === 429) return "Хэт олон хүсэлт илгээлээ. 1 минут хүлээгээд дахин оролдоно уу.";
+  if (status === 413) return "Илгээсэн мэдээлэл хэт том байна. Жагсаалтаа богиносгох эсвэл жижиг зураг сонгоно уу.";
+  if (status >= 500) return "AI сервис түр ажиллахгүй байна. Хэсэг хүлээгээд дахин оролдоно уу.";
+  // 400: сервер шалгалтын алдааг монголоор тайлбарладаг («Асуулт хэт урт байна» гэх мэт)
+  if (status === 400 && body && body.length < 200 && /[а-яөү]/i.test(body)) return body;
+  return `AI сервисээс алдаа ирлээ (${status}). Дахин оролдоно уу.`;
+}
+
 async function service(path, payload) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), SERVICE_TIMEOUT);
   try {
     const r = await fetch(SERVICE_URL + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), signal: ctrl.signal });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(serviceError(r.status, (await r.text().catch(() => "")).trim()));
     return await r.json();
   } catch (e) {
+    // fetch() сүлжээний алдаанд TypeError шиднэ («Failed to fetch»)
+    if (e instanceof TypeError) throw new Error("AI сервистэй холбогдож чадсангүй. Интернэт холболтоо шалгаад дахин оролдоно уу.", { cause: e });
     if (e.name === "AbortError") throw new Error(`AI сервис ${SERVICE_TIMEOUT / 1000} секундэд хариу өгсөнгүй. Дахин оролдоно уу.`, { cause: e });
     throw e;
   } finally {
