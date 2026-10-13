@@ -1,6 +1,6 @@
 import { SOURCES, buildSources } from "./sources.js";
 import { redact, diff, putSnapshot, previousSnapshot, trimForAi, shape } from "./lib.js";
-import { findServices, referenceTitles, matchService, candidates, localPlan, learnKey } from "./catalog.js";
+import { findServices, referenceTitles, matchService, candidates, localPlan, learnKey, onCatalogStale } from "./catalog.js";
 import { SERVICE_URL, EM_TAB_URL, XYP_TIMEOUT_MS } from "./config.js";
 import { makeZip, dataUrlBytes } from "./zip.js";
 import { icon, spinner } from "./icons.js";
@@ -43,6 +43,14 @@ let state = saved.last || null; // { snap, prevTakenAt, changes, summary }
 let chat = (saved.chat || []).map(m => (restore(m.plan), m));
 // «Жагсаалтаар бүрдүүлэх»-ийн жагсаалт (chat-ийн plan-тай ижил хэлбэртэй, source: "list")
 let listPlan = restore(saved.listPlan || null);
+
+// Үйлчилгээний жагсаалтыг шинэчилж чадаагүй бол (хуучин хуулбараар тааруулж байна) нэг удаа мэдэгдэнэ
+let staleShown = false;
+onCatalogStale(({ at }) => {
+  if (staleShown) return;
+  staleShown = true;
+  toast(`e-Mongolia-ийн үйлчилгээний жагсаалтыг шинэчилж чадсангүй. ${at ? today(new Date(at)) + "-ний " : ""}хуучин жагсаалтаар тааруулж байна.`);
+});
 
 const ui = {
   // «Тойм» (хураангуй, chat) ба «Бичиг баримт» (жагсаалт, цуглуулах). Сүүлд нээснийг санана (өмнөх хувилбарын "list" → documents).
