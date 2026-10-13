@@ -388,6 +388,36 @@ function planText(plan) {
     ...(plan.tips.length ? ["", "Зөвлөмж:", ...plan.tips.map(t => "• " + t)] : [])].join("\n");
 }
 
+// Жагсаалтыг .txt файлаар: Downloads/Burduulelt/<зорилго>_<огноо>.txt
+async function exportTxt(plan) {
+  const date = today();
+  const text = `Бэлдсэн: ${date}${plan.addressee ? `\nХаана өгөх: ${plan.addressee}` : ""}\n\n${planText(plan)}\n`;
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+  try {
+    await chrome.downloads.download({ url, filename: `Burduulelt/${safe(plan.folder)}_${date}.txt`, conflictAction: "uniquify", saveAs: false });
+    toast("Жагсаалт .txt файлаар татагдлаа");
+  } catch {
+    toast("Татаж чадсангүй");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+// Жагсаалтыг хэвлэх: зөвхөн жагсаалтын текстийг далд iframe-д хэвлэнэ (side panel-ийг бүхэлд нь биш)
+function printPlan(plan) {
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "position:fixed;width:0;height:0;border:0";
+  document.body.append(frame);
+  const doc = frame.contentDocument;
+  doc.title = plan.title;
+  const pre = doc.createElement("pre");
+  pre.style.cssText = "font: 14px/1.6 system-ui, sans-serif; white-space: pre-wrap";
+  pre.textContent = `${planText(plan)}\n\nБэлдсэн: ${today()}${plan.addressee ? ` · Хаана өгөх: ${plan.addressee}` : ""}`;
+  doc.body.append(pre);
+  frame.contentWindow.addEventListener("afterprint", () => frame.remove());
+  frame.contentWindow.print();
+  setTimeout(() => frame.remove(), 60_000);
+}
+
 const norm = s => String(s).toLowerCase().replace(/\s+/g, " ").trim();
 
 // «Шинээр гаргах»: хадгалсан жагсаалтын оронд AI-аас шинээр гаргана
@@ -764,6 +794,8 @@ function planViewHtml({ ref, plan }) {
 
   const menu = ui.menu === "doc" ? `<div class="menu" role="menu" aria-label="Жагсаалтын үйлдэл">
       <button type="button" role="menuitem" data-action="copy" ${at}>${icon("copy", 16)} Жагсаалт хуулах</button>
+      <button type="button" role="menuitem" data-action="export-txt" ${at}>${icon("download", 16)} .txt файлаар татах</button>
+      <button type="button" role="menuitem" data-action="print" ${at}>${icon("file", 16)} Хэвлэх</button>
       ${(plan.question || plan.text) && !busy ? `<button type="button" role="menuitem" data-action="regen" ${at}>${icon("refresh", 16)} Шинээр гаргах</button>` : ""}
       <button type="button" role="menuitem" data-action="new-list">${icon("plus", 16)} Өөр жагсаалт оруулах</button>
       ${!busy ? `<button type="button" role="menuitem" data-action="delete-list" ${at}>${icon("trash", 16)} Жагсаалт устгах</button>` : ""}
@@ -1073,6 +1105,8 @@ async function onClick(e) {
   if (!plan) return;
   switch (action) {
     case "copy": return copyPlan(plan);
+    case "export-txt": return exportTxt(plan);
+    case "print": return printPlan(plan);
     case "regen": return regenerate(ref);
     case "delete-list": return deleteList(ref);
     case "collect": return collectPlan(plan);
