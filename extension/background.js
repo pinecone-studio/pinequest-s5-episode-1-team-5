@@ -1,3 +1,5 @@
+import { EM_TAB_URL } from "./config.js";
+
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // --- Бичиг баримт цуглуулах: chat-ийн зорилго болон «Жагсаалтаар» табын жагсаалт хоёулаа үүнийг ашиглана ---
@@ -52,7 +54,7 @@ function waitForDownload(timeoutMs) {
 async function getEmTab() {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (active?.url?.includes("e-mongolia.mn")) return active;
-  const [any] = await chrome.tabs.query({ url: "https://*.e-mongolia.mn/*" });
+  const [any] = await chrome.tabs.query({ url: EM_TAB_URL });
   return any || chrome.tabs.create({ url: HOME });
 }
 
