@@ -24,15 +24,20 @@
     return els.find(el => norm(el.innerText) === want) || (!exact && els.find(el => norm(el.innerText).includes(want)));
   }
 
-  // Хуудсан дээрх нээлттэй цонхнууд. «Видео заавар» нь хуудас ачаалахад автоматаар нээгддэг тул тусад нь ялгана.
+  // Хуудсан дээрх нээлттэй цонхнууд. Хуудас ачаалахад өөрөө нээгддэг, үйлчилгээтэй холбоогүй цонхнуудыг тусад нь ялгана:
+  //   «Видео заавар» болон нэвтэрсэн хэрэглэгчид хуудас бүрд гардаг «Санал асуулга» (2026-10-нд нэмэгдсэн, «Санал өгөх» товчтой).
+  // Эдгээрийг хааж, e-Mongolia-ийн алдаа/тодруулга гэж андуурахгүй. Хаах (X) нь зөвхөн цонхыг хаадаг — санал өгөхгүй.
   const openModals = () => [...document.querySelectorAll(".ant-modal, [role=dialog]")].filter(visible);
   const isVideo = m => /^\s*видео заавар/i.test(m.innerText) || !!m.querySelector("video, iframe[src*='youtube']");
+  const isSurvey = m => /^санал асуулга/.test(norm(m.querySelector(".ant-modal-title")?.innerText || m.innerText))
+    || [...m.querySelectorAll("button")].some(b => norm(b.innerText) === "санал өгөх");
+  const isPopup = m => isVideo(m) || isSurvey(m);
   const isLogin = m => /нэвтрэх/i.test(m.innerText) && /дан/i.test(m.innerText);
   // «Тодруулга» / «Анхааруулга» зэрэг modal.confirm цонх (класс нэрээс хамаарахгүйгээр олно)
-  const confirmModal = () => openModals().filter(m => !isVideo(m) && !isLogin(m) && m.querySelector("button")).pop();
+  const confirmModal = () => openModals().filter(m => !isPopup(m) && !isLogin(m) && m.querySelector("button")).pop();
 
-  function closeVideo() {
-    for (const m of openModals().filter(isVideo)) m.querySelector(".ant-modal-close, button[aria-label=Close]")?.click();
+  function closePopups() {
+    for (const m of openModals().filter(isPopup)) m.querySelector(".ant-modal-close, button[aria-label=Close]")?.click();
   }
 
   function loggedIn() {
@@ -50,10 +55,11 @@
   // «Үйлчилгээ авах»-ын дараах төлөв. Шууд гардаг лавлагааны үр дүн /apply хуудсанд
   // blob: хаягтай iframe дотор PDF-ээр харагддаг (татах товч, татах үйлдэл байхгүй).
   function probe() {
+    closePopups(); // «Санал асуулга» нь API-ийн хариу ирсний дараа гардаг тул «Үйлчилгээ авах» дарсны дараа ч нээгдэж болно
     const frame = [...document.querySelectorAll("iframe, embed, object")]
       .find(f => /^blob:|\.pdf($|\?)/i.test(f.src || f.data || ""));
     const confirm = confirmModal();
-    const login = openModals().some(isLogin);
+    const login = openModals().some(m => !isPopup(m) && isLogin(m));
     const main = document.querySelector("main") || document.body;
     const fields = [...main.querySelectorAll("input, select, textarea")]
       .filter(i => visible(i) && !inNav(i) && i.type !== "hidden" && !/хайх/i.test(i.placeholder || ""));
@@ -250,7 +256,7 @@
         }
 
         case "CLICK": {
-          closeVideo();
+          closePopups();
           await sleep(300);
           const btn = await waitFor(() => findButton(msg.label, msg.exact), msg.timeout || 8000);
           if (!btn) return reply({ ok: false });
