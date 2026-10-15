@@ -92,7 +92,7 @@
   //   «Хаана зориулж»          → addressee, ирээгүй бол маягтын «Жишээ нь: …» текст
   //   «Ү дугаар»                → ХУР-аас хэрэглэгчийн үл хөдлөх хөрөнгийн дугаар (ганц хөрөнгөтэй бол)
   //   radio («Хэнд», хүн сонгох) → ганц сонголт, эсвэл «Өөртөө» / «Хүүхдийн»-ийг subject-ээр
-  //   «Хэл сонгох» (гадаад хэлээр лавлагаа; select, radio эсвэл checkbox) → AI-ийн сонгосон хэл, байхгүй бол англи
+  //   «Хэл сонгох» (гадаад хэлээр лавлагаа; select, cascader, radio эсвэл checkbox) → AI-ийн сонгосон хэл, байхгүй бол англи
   // Танихгүй шаардлагатай талбарыг бөглөхгүй — тэр үед хэрэглэгч өөрөө бөглөнө.
   const RULES = [
     { re: /эхлэх\s*(он|огноо)|(^|\s)оноос/, key: "startYear" }, // кирилл үсэгт \b ажилладаггүй
@@ -119,22 +119,40 @@
     }
     return texts.length === 1 ? 0 : -1;
   }
-  // Бөглөж чадаагүй сонголтын талбар: сонголтуудыг нь хамт харуулна (юу сонгохыг хэрэглэгч, хөгжүүлэгч харна)
-  const choiceLabel = (label, texts) => texts.length ? `${label} (${texts.slice(0, 6).join(", ")})` : label;
+  // Бөглөж чадаагүй сонголтын талбар: сонголтуудыг нь, сонголт байхгүй бол шалтгааныг хамт харуулна (юу болсныг хэрэглэгч, хөгжүүлэгч харна)
+  const choiceLabel = (label, texts, why) => texts.length ? `${label} (${texts.slice(0, 6).join(", ")})` : why ? `${label} (${why})` : label;
 
-  // Ant Design Select: mousedown-оор нээгээд (onClick-оор) сонголтыг дарна. Dropdown нь body-д тусдаа зурагддаг.
+  // Ant Design Select / Cascader: mousedown-оор нээгээд (onClick-оор) сонголтыг дарна. Dropdown нь body-д тусдаа зурагддаг.
+  // 2026-10-15: гадаад хэлээр лавлагааны «Хэл сонгох» нь Cascader болсон (`.ant-select.ant-cascader`, нэг түвшний
+  // `.ant-cascader-menu-item`: Англи, Франц, Солонгос, Орос, Хятад) — Select-ийн `.ant-select-item-option` байхгүй.
   async function chooseSelect(it, want) {
-    const box = it.querySelector(".ant-select-selector");
-    if (!box) return { ok: false, options: [] };
-    box.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-    const dd = await waitFor(() => [...document.querySelectorAll(".ant-select-dropdown")]
-      .find(d => visible(d) && !d.classList.contains("ant-select-dropdown-hidden")), 3000);
-    if (!dd) return { ok: false, options: [] };
+    const sel = it.querySelector(".ant-select");
+    const box = sel?.querySelector(".ant-select-selector") || sel;
+    if (!box) return { ok: false, options: [], why: "сонголтын талбар олдсонгүй" };
+    const input = sel.querySelector("input");
+    // Яг энэ select-ийн dropdown: input-ийн aria-controls (`<id>_list`) жагсаалтыг агуулсныг нь, олдохгүй бол нээлттэй аль нэгийг
+    const dropdown = () => {
+      const list = input && document.getElementById(input.getAttribute("aria-controls") || input.getAttribute("aria-owns") || "");
+      const open = d => d && visible(d) && !d.classList.contains("ant-select-dropdown-hidden");
+      const own = list?.closest(".ant-select-dropdown");
+      return open(own) ? own : [...document.querySelectorAll(".ant-select-dropdown")].find(open);
+    };
+    const toggle = () => box.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    toggle();
+    let dd = await waitFor(dropdown, 3000);
+    if (!dd) { input?.focus(); box.click(); dd = await waitFor(dropdown, 2000); } // mousedown-оор нээгдээгүй бол click-ээр
+    if (!dd) return { ok: false, options: [], why: "жагсаалт нээгдсэнгүй" };
+    // Сонголтууд нь API-аас хожуу ирж болох тул гарч иртэл хүлээнэ. Cascader-ийн зөвхөн эхний түвшнийг (хэлний жагсаалт) авна.
+    const optsOf = () => [
+      ...dd.querySelectorAll(".ant-select-item-option:not(.ant-select-item-option-disabled)"),
+      ...(dd.querySelector(".ant-cascader-menu")?.querySelectorAll(".ant-cascader-menu-item:not(.ant-cascader-menu-item-disabled)") || []),
+    ];
+    await waitFor(() => optsOf().length, 8000);
     await sleep(300);
-    const opts = [...dd.querySelectorAll(".ant-select-item-option:not(.ant-select-item-option-disabled)")];
+    const opts = optsOf();
     const texts = opts.map(o => norm(o.getAttribute("title") || o.innerText));
     const i = pickLang(texts, want);
-    if (i < 0) { box.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true })); return { ok: false, options: texts }; }
+    if (i < 0) { toggle(); return { ok: false, options: texts, why: texts.length ? "" : "жагсаалт хоосон" }; }
     opts[i].click();
     await sleep(400);
     if (it.querySelector(".ant-select-multiple")) document.activeElement?.blur?.(); // олон сонголттой бол цонхыг хаана
@@ -226,7 +244,7 @@
           r = { ok: i >= 0, options: texts };
         }
         if (r.ok) filled.push(label);
-        else missing.push(choiceLabel(label, r.options));
+        else missing.push(choiceLabel(label, r.options, r.why));
         continue;
       }
       if (el && el.value && !/^\s*$/.test(el.value)) continue; // аль хэдийн бөглөгдсөн
@@ -236,7 +254,8 @@
       if (rule?.key === "propertyNumber" && !value) value = await propertyNumber();
       if (rule?.key === "childRegnum" && !value) value = await childRegnum();
       if (el && (kind === "input" || kind === "textarea") && value) { setValue(el, String(value)); filled.push(label); }
-      else if (required) missing.push(label || "нэргүй талбар");
+      // «Хэл сонгох» нь танигдах сонголтын талбар биш бол (сайт бүтцээ өөрчилсөн) ямар төрлийн талбар байсныг харуулна
+      else if (required) missing.push(LANG_LABEL.test(label) ? choiceLabel(label, [], "танигдаагүй талбар: " + kind) : label || "нэргүй талбар");
     }
     await sleep(400);
     const errors = [...main.querySelectorAll(".ant-form-item-explain-error")].filter(visible).map(e => e.innerText.trim()).filter(Boolean);
