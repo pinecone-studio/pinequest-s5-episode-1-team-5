@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Миний мэдээлэл AI</title>
   <link rel="stylesheet" href="sidepanel.css">
+  <script src="theme.js"></script>
 </head>
 <body>
 
@@ -14,9 +15,12 @@
       <div class="hero">
         <div class="wrap">
           <div class="intro">
-            <span class="app-mark" aria-hidden="true">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>
-            </span>
+            <div class="row-between">
+              <span class="app-mark" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>
+              </span>
+              <button type="button" class="icon-btn icon-btn--sm" data-action="theme" aria-label="Бараан горим" aria-pressed="false"></button>
+            </div>
             <h1>Миний мэдээлэл AI</h1>
             <p>e-Mongolia дээрх мэдээллээ AI-аар хураангуйлж, бичиг баримтаа нэг ZIP багц болгон бүрдүүл.</p>
           </div>
@@ -54,8 +58,7 @@
     <footer class="footer">
       <div class="wrap footer__inner">
         <div id="onbStatus" class="live-region" aria-live="polite"></div>
-        <p class="consent" id="consentText">Таны e-Mongolia дээрх мэдээллийг татаж, хувийн мэдээллийг нь нууцалсны дараа AI-аар шинжилнэ. Та зөвшөөрч байна уу?</p>
-        <button type="button" class="btn btn--primary btn--lg" data-action="consent" id="startBtn" aria-describedby="consentText">Зөвшөөрч байна</button>
+        <button type="button" class="link-button consent-link" data-action="consent" id="consentLink" aria-haspopup="dialog">Зөвшөөрөл өгөх</button>
         <p class="footnote">Эхлээд e-Mongolia-д ДАН-аар нэвтэрсэн байх шаардлагатай ·
           <button type="button" class="link-inline" data-action="open-em">e-Mongolia нээх</button></p>
       </div>
@@ -65,15 +68,35 @@
   <!-- 2. Үндсэн дэлгэц: Тойм (хураангуй, асуулт). Жагсаалт нээхэд түүний оронд бичиг баримтын хэсэг гарна. -->
   <div class="screen" id="main" hidden>
     <header class="topbar">
-      <div class="wrap">
+      <div class="wrap row-between">
         <div class="topbar__title">
           <span class="app-mark" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg>
           </span>
           <span class="topbar__name">Миний мэдээлэл AI</span>
         </div>
+        <button type="button" class="icon-btn icon-btn--sm" data-action="theme" aria-label="Бараан горим" aria-pressed="false"></button>
       </div>
     </header>
+
+    <!-- Асуулт бичих талбар: дээд хэсэгт (chat-ийн мессежүүд яг доор нь, «Тойм»-ын эхэнд гарна) -->
+    <div class="composer" id="composer">
+      <div class="wrap footer__inner">
+        <form class="ask" id="askForm" autocomplete="off">
+          <label for="askInput" class="sr-only">Асуулт эсвэл зорилго</label>
+          <input id="askInput" type="text" placeholder="Асуулт эсвэл зорилгоо бичих…" maxlength="500">
+          <button type="submit" class="ask__send" aria-label="Илгээх" id="askSend">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </button>
+        </form>
+        <div class="counter" data-counter-for="askInput" aria-hidden="true"></div>
+        <div class="chips" id="chips" role="group" aria-label="Санал болгох асуултууд"></div>
+        <button type="button" class="privacy-link" data-action="open-privacy">
+          <span data-icon="lock" data-size="14"></span>
+          Нууц үг хадгалахгүй · Мэдээлэл хэрхэн ашиглагдах вэ?
+        </button>
+      </div>
+    </div>
 
     <main class="scroll" id="scroll">
       <div class="wrap">
@@ -110,24 +133,6 @@
         </section>
       </div>
     </main>
-
-    <footer class="footer composer" id="composer">
-      <div class="wrap footer__inner">
-        <div class="chips" id="chips" role="group" aria-label="Санал болгох асуултууд"></div>
-        <form class="ask" id="askForm" autocomplete="off">
-          <label for="askInput" class="sr-only">Асуулт эсвэл зорилго</label>
-          <input id="askInput" type="text" placeholder="Асуулт эсвэл зорилгоо бичих…" maxlength="500">
-          <button type="submit" class="ask__send" aria-label="Илгээх" id="askSend">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-          </button>
-        </form>
-        <div class="counter" data-counter-for="askInput" aria-hidden="true"></div>
-        <button type="button" class="privacy-link" data-action="open-privacy">
-          <span data-icon="lock" data-size="14"></span>
-          Нууц үг хадгалахгүй · Мэдээлэл хэрхэн ашиглагдах вэ?
-        </button>
-      </div>
-    </footer>
   </div>
 
   <!-- Нууцлалын цонх -->

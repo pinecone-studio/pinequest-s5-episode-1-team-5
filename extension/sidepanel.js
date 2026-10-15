@@ -206,7 +206,7 @@ async function ask(question) {
   chat.push({ role: "assistant", text: "…", pending: true });
   ui.asking = true;
   render();
-  scrollToBottom();
+  scrollToLastMessage();
   try {
     if (isDocRequest(question)) {
       // Тогтмол хэлбэр: гарчиг → e-Mongolia-оос цуглуулах → «Цуглуулах» → өөрөө бэлдэх
@@ -236,7 +236,7 @@ async function ask(question) {
   }
   ui.asking = false;
   render();
-  scrollToBottom();
+  scrollToLastMessage();
 }
 
 // --- Бичиг баримт бүрдүүлэх ---------------------------------------------------
@@ -581,19 +581,23 @@ function save() {
   chrome.storage.local.set({ chat: chat.filter(m => !m.pending), listPlan, docRef: ui.docRef }).catch(() => {});
 }
 
-// Явц, алдааны мөр. needsLogin бол «e-Mongolia нээх» товчтой.
-function notice(st, needsLogin = false) {
+// Явц, алдааны мөр. needsLogin бол «e-Mongolia нээх», retry бол алдаан дээр «Дахин оролдох» товчтой
+// (шинжлээгүй дэлгэцүүд: зөвшөөрлөө аль хэдийн өгсөн тул дахин асуухгүй).
+function notice(st, needsLogin = false, retry = false) {
   if (!st) return "";
   const ic = { err: icon("alert", 16), warn: icon("exclaim", 16, { sw: 2.5 }), ok: icon("check", 16, { sw: 3 }), info: icon("info", 16) }[st.cls] || spinner(16);
-  return `<div class="notice notice--${esc(st.cls)}" role="status">${ic}<div class="notice__body"><span>${esc(st.text)}</span>${needsLogin
-    ? `<button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>` : ""}</div></div>`;
+  const btns = [
+    needsLogin ? `<button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>` : "",
+    retry && st.cls === "err" ? `<button type="button" class="btn btn--ghost" data-action="analyze">${icon("refresh", 14)} Дахин оролдох</button>` : "",
+  ].join("");
+  return `<div class="notice notice--${esc(st.cls)}" role="status">${ic}<div class="notice__body"><span>${esc(st.text)}</span>${btns ? `<div class="btn-row">${btns}</div>` : ""}</div></div>`;
 }
 // onbStatus, listStatus нь aria-live="polite" талбар: дэлгэц уншигч өөрчлөлтийг нь уншина.
 // Талбарыг нуухгүй (hidden-ийн доторх өөрчлөлтийг зарладаггүй), хоосон үед CSS-ээр зай эзлэхгүй.
 // Агуулга өөрчлөгдөөгүй бол дахин бичихгүй — render() бүрт ижил мэдэгдлийг дахин уншуулахгүйн тулд.
 const shownNotice = new WeakMap();
-function setNotice(el, st, needsLogin) {
-  const html = notice(st, needsLogin).replace(' role="status"', ""); // гаднах aria-live хангалттай
+function setNotice(el, st, needsLogin, retry) {
+  const html = notice(st, needsLogin, retry).replace(' role="status"', ""); // гаднах aria-live хангалттай
   if (shownNotice.get(el) === html) return;
   shownNotice.set(el, html);
   el.hidden = false;
@@ -606,9 +610,8 @@ function pill(cls, label) {
 }
 
 function renderOnboarding() {
-  $("startBtn").disabled = ui.analyzing;
-  $("startBtn").innerHTML = ui.analyzing ? `${spinner()} Шинжилж байна…` : "Зөвшөөрч байна";
-  setNotice($("onbStatus"), ui.status, ui.needsLogin);
+  $("consentLink").hidden = ui.analyzing; // шинжилж байх үед явц нь onbStatus-д харагдана
+  setNotice($("onbStatus"), ui.status, ui.needsLogin, true);
 }
 
 // Нэг дэлгэц: «Тойм» эсвэл (жагсаалт нээсэн үед) бичиг баримтын хэсэг. Асуулт бичих талбар зөвхөн «Тойм»-д.
@@ -619,8 +622,15 @@ function renderView() {
   $("composer").hidden = !onOverview || !state?.snap;
 }
 
-// Зөвшөөрлийн асуулт: «Шинжлэх»-ийн өмнө AI руу юу явахыг хэлж зөвшөөрөл авна (анх нээх дэлгэц, шинжлээгүй «Тойм»)
-const CONSENT_TEXT = "Таны e-Mongolia дээрх мэдээллийг татаж, хувийн мэдээллийг нь нууцалсны дараа AI-аар шинжилнэ. Та зөвшөөрч байна уу?";
+// Зөвшөөрлийн цонх: AI руу юу явахыг хэлж зөвшөөрөл авна. Шинжлээгүй бол side panel нээхэд өөрөө гарна.
+// «Болих» дарвал «Зөвшөөрөл өгөх» холбоосоор (анх нээх дэлгэц, шинжлээгүй «Тойм») дахин нээнэ.
+const CONSENT_TEXT = "Таны e-Mongolia дээрх мэдээллийг татаж, хувийн мэдээллийг нь нууцалсны дараа AI-аар шинжилнэ.";
+async function askConsent() {
+  if (ui.analyzing || !(await confirmBox("Та зөвшөөрч байна уу?", CONSENT_TEXT, { ok: "Зөвшөөрч байна" }))) return;
+  // Зөвшөөрсөн цагийг энэ компьютерт тэмдэглэнэ («Хадгалсан мэдээллээ устгах» дарвал арилна)
+  await chrome.storage.local.set({ consentAt: new Date().toISOString() });
+  return runAnalyze();
+}
 
 // «Тойм» дахь «Жагсаалтаар бүрдүүлэх»: байгууллагаас өгсөн жагсаалтаар гаргасан жагсаалт, эсвэл шинээр оруулах
 function listEntryHtml() {
@@ -645,15 +655,12 @@ function renderOverview() {
   const snap = state?.snap, sm = state?.summary;
   if (!snap) {
     $("view-overview").innerHTML = `
-      ${notice(ui.status, ui.needsLogin)}
+      ${notice(ui.status, ui.needsLogin, true)}
       <div class="empty-state">
         <h2 class="section-title">Мэдээллээ шинжлээгүй байна</h2>
         <p>e-Mongolia-д нэвтэрсэн бол ЭМД, НДШ, зээл, бичиг баримт, хөрөнгийн мэдээллийг AI-аар хураангуйлна.</p>
-        <p class="consent" id="consentText2">${esc(CONSENT_TEXT)}</p>
-        <div class="btn-row">
-          <button type="button" class="btn btn--primary" id="analyzeBtn" data-action="consent" aria-describedby="consentText2" ${ui.analyzing ? "disabled" : ""}>${ui.analyzing ? `${spinner()} Шинжилж байна…` : "Зөвшөөрч байна"}</button>
-          <button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>
-        </div>
+        <button type="button" class="btn btn--ghost" data-action="open-em">e-Mongolia нээх ${icon("external", 14)}</button>
+        ${ui.analyzing ? "" : `<button type="button" class="link-button" data-action="consent" aria-haspopup="dialog">Зөвшөөрөл өгөх</button>`}
       </div>
       ${listEntryHtml()}`;
     return;
@@ -664,7 +671,12 @@ function renderOverview() {
       <button type="button" role="menuitem" data-action="reset" ${ui.analyzing || ui.asking ? "disabled" : ""}>${icon("trash", 16)} Дахин эхлүүлэх</button>
     </div>` : "";
 
+  // Дараалал: асуулт (chat) хамгийн дээр → шинжилгээ (огноо, Шинэчлэх, хураангуй, татсан мэдээлэл) → жагсаалт
   $("view-overview").innerHTML = `
+    <section class="stack" aria-labelledby="chat-title">
+      <h2 id="chat-title" class="section-title">Асуулт</h2>
+      <div class="messages">${messagesHtml()}</div>
+    </section>
     <div class="row-between">
       <span class="meta">Шинжилсэн <strong id="agoText">${esc(timeAgo(sm?.at || snap.takenAt))}</strong></span>
       <div class="head-actions">
@@ -678,11 +690,7 @@ function renderOverview() {
     ${notice(ui.status, ui.needsLogin)}
     ${sm ? summaryHtml(sm) : !ui.analyzing && !ui.status ? `<p class="empty-hint">AI хураангуй гараагүй байна. «Шинэчлэх» дарж дахин оролдоно уу.</p>` : ""}
     ${sourcesHtml(snap)}
-    ${listEntryHtml()}
-    <section class="stack" aria-labelledby="chat-title">
-      <h2 id="chat-title" class="section-title">Асуулт</h2>
-      <div class="messages">${messagesHtml()}</div>
-    </section>`;
+    ${listEntryHtml()}`;
 }
 
 const LEVEL = { urgent: ["Яаралтай анхаарах", "alert"], warning: ["Анхаарах", "alert"], info: ["Мэдээлэл", "info"] };
@@ -731,12 +739,23 @@ function summaryHtml(sm) {
         </li>`).join("")}</ul>
     </section>` : "";
 
+  // Хаалттай үед ч анхаарах зүйл байгааг гарчгийн мөрөнд харуулна
+  const count = lvl => (sm.alerts || []).filter(a => a.level === lvl).length;
+  const urgent = count("urgent"), warning = count("warning");
+  const badge = urgent ? pill("overdue", `${urgent} яаралтай`) : warning ? pill("attention", `${warning} анхаарах`) : pill("ok", "Хэвийн");
+
   return `
-    <section class="card headline" aria-label="Хураангуй">
-      <span class="headline__label">Хураангуй</span>
-      <p class="headline__text">${esc(sm.headline)}</p>
-    </section>
-    ${alerts}${changes}${ok}`;
+    <details class="tips" id="sumBox" ${ui.open.has("sumBox") ? "open" : ""}>
+      <summary>
+        <span class="tips__icon">${icon("file", 18)}</span>Хураангуй
+        <span class="tips__meta">${badge}</span>
+        <span class="chev">${icon("chevron", 16)}</span>
+      </summary>
+      <div class="summary__body">
+        <p class="headline__text">${esc(sm.headline)}</p>
+        ${alerts}${changes}${ok}
+      </div>
+    </details>`;
 }
 
 // Дэлгэрэнгүй: эх сурвалж бүрийн төлөв (зөвхөн бүтэц) ба AI руу илгээх өгөгдөл
@@ -1048,8 +1067,29 @@ function confirmBox(title, text = "", { ok = "Тийм", danger = false } = {}) 
   });
 }
 
-function scrollToBottom() {
-  $("scroll").scrollTop = $("scroll").scrollHeight;
+// Цайвар/бараан горим: анх системийн тохиргоогоор. Товч дарвал эсрэг горимд шилжиж, сонголтыг
+// localStorage-д хадгална (theme.js дараагийн нээлтэд CSS зурахаас өмнө тавина).
+const systemDark = matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => (document.documentElement.dataset.theme || (systemDark.matches ? "dark" : "light")) === "dark";
+function showTheme() {
+  const dark = isDark();
+  document.querySelectorAll('[data-action="theme"]').forEach(b => {
+    b.setAttribute("aria-pressed", String(dark));
+    b.title = dark ? "Цайвар горимд шилжих" : "Бараан горимд шилжих";
+    b.innerHTML = icon(dark ? "sun" : "moon", 18);
+  });
+}
+function toggleTheme() {
+  const theme = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem("theme", theme); } catch {}
+  showTheme();
+}
+systemDark.addEventListener("change", showTheme);
+
+// Chat «Тойм»-ын дээд хэсэгт байгаа тул сүүлийн мессеж харагдахаар гүйлгэнэ
+function scrollToLastMessage() {
+  document.querySelector("#view-overview .messages")?.lastElementChild?.scrollIntoView({ block: "nearest" });
 }
 
 function setTab(tab) {
@@ -1115,10 +1155,8 @@ async function onClick(e) {
   const d = plan?.em?.[+b.dataset.i];
   switch (action) {
     case "analyze": return runAnalyze();
-    case "consent":
-      // Зөвшөөрсөн цагийг энэ компьютерт тэмдэглэнэ («Хадгалсан мэдээллээ устгах» дарвал арилна)
-      await chrome.storage.local.set({ consentAt: new Date().toISOString() });
-      return runAnalyze();
+    case "consent": return askConsent();
+    case "theme": return toggleTheme();
     case "open-em": return chrome.tabs.create({ url: EM_HOME });
     case "copy-answer": return copyAnswer(chat[+b.dataset.mi]);
     case "tab": return setTab(b.dataset.tab);
@@ -1139,7 +1177,6 @@ async function onClick(e) {
       return $("listText").focus();
     case "go-ask":
       setTab("overview");
-      scrollToBottom();
       return $("askInput").focus();
     case "open-list":
       ui.docRef = ref;
@@ -1279,6 +1316,8 @@ function updateCounters() {
 }
 ["askInput", "listText"].forEach(id => $(id).addEventListener("input", updateCounters));
 
+showTheme();
+
 // Хуучин хувилбарын өгөгдөл таарахгүй бол цэвэрлээд дахин зурна
 try { render(); }
 catch (e) {
@@ -1287,6 +1326,9 @@ catch (e) {
   await chrome.storage.local.remove(["chat", "listPlan"]);
   render();
 }
+
+// Шинжлээгүй бол зөвшөөрлийг шууд асууна
+if (!state?.snap) askConsent();
 
 setInterval(() => {
   const el = $("agoText");
