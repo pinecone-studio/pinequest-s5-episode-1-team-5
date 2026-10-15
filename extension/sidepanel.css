@@ -456,7 +456,8 @@ svg { display: block; flex: none; }
   color: var(--text);
   box-shadow: 0 24px 48px rgba(15, 27, 45, 0.2);
 }
-.sheet::backdrop { background: rgba(15, 27, 45, 0.35); }
+/* Цонх нээлттэй үед арын хэсгийг бүдгэрүүлж (blur) цонхонд анхаарал төвлөрүүлнэ */
+.sheet::backdrop { background: rgba(15, 27, 45, 0.35); backdrop-filter: blur(6px); }
 .sheet[open] { display: flex; flex-direction: column; gap: 16px; }
 .sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sheet__head h2 { font-size: 17px; font-weight: 600; }
