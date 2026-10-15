@@ -334,7 +334,9 @@ const ALTERNATIVES = [[/гэрлэсний бүртгэлийн лавлагаа
 
 // Татсан PDF-үүд (зөвхөн санах ойд — side panel хаахад устна, ZIP багц Downloads-д үлдэнэ)
 const pdfs = new WeakMap(); // d → data URL
-const safe = s => String(s).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 60);
+// 100 тэмдэгт: «Иргэний эрүүгийн … тодорхойлолт (гадаад хэлээр)» (81) зэрэг урт нэр тасрахгүй.
+// Кирилл UTF-8-д 2 байт тул ~200 байт — файлын нэрийн 255 байтын хязгаараас доош.
+const safe = s => String(s).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 100);
 
 // Жагсаалтууд: chat-д гарсан (ref = мессежийн дугаар) ба «Жагсаалтаар бүрдүүлэх»-ээс (ref = "list"), шинэ нь эхэндээ
 const planOf = ref => (ref === "list" ? listPlan : chat[+ref]?.plan);

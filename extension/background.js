@@ -150,7 +150,7 @@ async function getPdf(tabId, dl, fill) {
 
   const t0 = Date.now();
   const onRepeat = "new"; // өмнө авсан бол «Шинээр авах» (зөвхөн үнэгүй, шууд гардаг үйлчилгээнд энд хүрнэ)
-  let fellBack = false, renewed = false, formAt = 0, last = null;
+  let fellBack = false, renewed = false, formAt = 0, formSig = null, steps = 0, last = null;
   while (Date.now() - t0 < 70000) {
     const id = await Promise.race([dl, sleep(1500).then(() => null)]);
     if (id) return { ok: true, downloadId: id };
@@ -174,31 +174,42 @@ async function getPdf(tabId, dl, fill) {
         await send(tabId, { type: "CONFIRM_CLICK", label: "Шинээр авах" });
         continue;
       }
-      // «Таны мэдээлэл бүртгэлгүй байна. Та мэдээлэл хариуцагч X-д хандана уу» — алдаа биш, тухайн бүртгэл байхгүй
-      if (/бүртгэлгүй байна/i.test(c.content))
-        return { ok: false, error: "NOT_REGISTERED", detail: (c.content.match(/хариуцагч\s+(.+?)-д\s+хандана/i) || [])[1] || "", url: last.url };
+      // Алдаа биш, тухайн бүртгэл байхгүй:
+      //   «Таны мэдээлэл бүртгэлгүй байна. Та мэдээлэл хариуцагч X-д хандана уу»
+      //   «Мэдээлэл олдсонгүй: ХУР системийн хариу: X -c олдсонгүй (result code: 1)» (2026-10-15: дипломгүй хүнд дипломын тодорхойлолт)
+      if (/бүртгэлгүй байна/i.test(c.content) || /олдсонгүй/i.test(c.title) || /олдсонгүй.*result code:\s*1\b/i.test(c.content)) {
+        const org = c.content.match(/хариуцагч\s+(.+?)-д\s+хандана/i) || c.content.match(/хариу:\s*(.+?)\s*-\s*[cс]\s+олдсонгүй/i);
+        return { ok: false, error: "NOT_REGISTERED", detail: org?.[1] || "", url: last.url };
+      }
       return { ok: false, error: "e-Mongolia: " + c.content.slice(0, 200), url: last.url };
     }
     if (last.needsInput) {
-      // /apply маягт: танигдах талбаруудыг бөглөөд «Үргэлжлүүлэх» дарна (энд зөвхөн үнэгүй, шууд гардаг үйлчилгээ хүрнэ)
-      if (!formAt) {
-        await sleep(1000); // талбарууд бүрэн зурагдахыг хүлээнэ
-        // Сонголт хийсний дараа шинэ талбар гарч ирж болох тул (жишээ нь «Хүүхдийн» → хүүхэд сонгох) хэд хэдэн удаа бөглөнө
-        let f = null, any = false;
-        for (let round = 0; round < 4; round++) {
-          f = await send(tabId, { type: "FILL_FORM", fill });
-          if (!f?.filled?.length) break;
-          any = true;
-          await sleep(800);
-        }
-        if (!f || (!f.hasForm && !any) || f.missing.length || f.errors.length)
-          return { ok: false, error: "NEEDS_INPUT", detail: f?.missing?.length ? "бөглөх: " + f.missing.join(", ") : (f?.errors || []).join("; "), url: last.url };
-        const c = await send(tabId, { type: "CLICK", label: "Үргэлжлүүлэх", exact: true, timeout: 3000 });
-        if (!c?.ok) return { ok: false, error: "NEEDS_INPUT", detail: "«Үргэлжлүүлэх» товч олдсонгүй", url: last.url };
-        formAt = Date.now();
+      // /apply маягт: танигдах талбаруудыг бөглөөд «Үргэлжлүүлэх» дарна (энд зөвхөн үнэгүй, шууд гардаг үйлчилгээ хүрнэ).
+      // Маягт олон алхамтай байж болно (2026-10-15: гадаад хэлээр лавлагаа 1) «Хэл сонгох» → 2) «Хэнд», «Хаана зориулж» эсвэл он):
+      // «Үргэлжлүүлэх»-ийн дараа шинэ алхам (өөр талбарууд) эсвэл хоосорсон талбар гарвал дахин бөглөж үргэлжлүүлнэ.
+      if (formAt && Date.now() - formAt < 2500) continue; // дараагийн алхам эсвэл PDF гарахыг хүлээнэ
+      await sleep(formAt ? 500 : 1000); // талбарууд бүрэн зурагдахыг хүлээнэ
+      // Сонголт хийсний дараа шинэ талбар гарч ирж болох тул (жишээ нь «Хүүхдийн» → хүүхэд сонгох) хэд хэдэн удаа бөглөнө
+      let f = null, any = false;
+      for (let round = 0; round < 4; round++) {
+        f = await send(tabId, { type: "FILL_FORM", fill });
+        if (!f?.filled?.length) break;
+        any = true;
+        await sleep(800);
+      }
+      const sig = (f?.seen || []).join("|");
+      if (formAt && f && !any && !f.missing.length && !f.errors.length && (!f.hasForm || sig === formSig)) {
+        // Өмнөх алхам хэвээр (хүсэлт явж байна), бөглөх шинэ зүйлгүй
+        if (Date.now() - formAt > 15000) return { ok: false, error: "NEEDS_INPUT", detail: "маягтыг бөглөсөн ч үргэлжлэхгүй байна", url: last.url };
         continue;
       }
-      if (Date.now() - formAt > 15000) return { ok: false, error: "NEEDS_INPUT", detail: "маягтыг бөглөсөн ч үргэлжлэхгүй байна", url: last.url };
+      if (!f || (!f.hasForm && !any) || f.missing.length || f.errors.length)
+        return { ok: false, error: "NEEDS_INPUT", detail: f?.missing?.length ? "бөглөх: " + f.missing.join(", ") : (f?.errors || []).join("; "), url: last.url };
+      if (++steps > 5) return { ok: false, error: "NEEDS_INPUT", detail: "маягтын алхам дуусахгүй байна", url: last.url };
+      const c = await send(tabId, { type: "CLICK", label: "Үргэлжлүүлэх", exact: true, timeout: 3000 });
+      if (!c?.ok) return { ok: false, error: "NEEDS_INPUT", detail: "«Үргэлжлүүлэх» товч олдсонгүй", url: last.url };
+      formSig = sig;
+      formAt = Date.now();
       continue;
     }
     if (!fellBack && Date.now() - t0 > 15000) {
