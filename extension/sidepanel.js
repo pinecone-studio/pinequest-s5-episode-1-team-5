@@ -334,7 +334,9 @@ const ALTERNATIVES = [[/гэрлэсний бүртгэлийн лавлагаа
 
 // Татсан PDF-үүд (зөвхөн санах ойд — side panel хаахад устна, ZIP багц Downloads-д үлдэнэ)
 const pdfs = new WeakMap(); // d → data URL
-const safe = s => String(s).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 60);
+// 100 тэмдэгт: «Иргэний эрүүгийн … тодорхойлолт (гадаад хэлээр)» (81) зэрэг урт нэр тасрахгүй.
+// Кирилл UTF-8-д 2 байт тул ~200 байт — файлын нэрийн 255 байтын хязгаараас доош.
+const safe = s => String(s).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 100);
 
 // Жагсаалтууд: chat-д гарсан (ref = мессежийн дугаар) ба «Жагсаалтаар бүрдүүлэх»-ээс (ref = "list"), шинэ нь эхэндээ
 const planOf = ref => (ref === "list" ? listPlan : chat[+ref]?.plan);
@@ -1067,10 +1069,9 @@ function confirmBox(title, text = "", { ok = "Тийм", danger = false } = {}) 
   });
 }
 
-// Цайвар/бараан горим: анх системийн тохиргоогоор. Товч дарвал эсрэг горимд шилжиж, сонголтыг
+// Цайвар/бараан горим: анх үргэлж цайвар. Товч дарвал эсрэг горимд шилжиж, сонголтыг
 // localStorage-д хадгална (theme.js дараагийн нээлтэд CSS зурахаас өмнө тавина).
-const systemDark = matchMedia("(prefers-color-scheme: dark)");
-const isDark = () => (document.documentElement.dataset.theme || (systemDark.matches ? "dark" : "light")) === "dark";
+const isDark = () => document.documentElement.dataset.theme === "dark";
 function showTheme() {
   const dark = isDark();
   document.querySelectorAll('[data-action="theme"]').forEach(b => {
@@ -1085,7 +1086,6 @@ function toggleTheme() {
   try { localStorage.setItem("theme", theme); } catch {}
   showTheme();
 }
-systemDark.addEventListener("change", showTheme);
 
 // Chat «Тойм»-ын дээд хэсэгт байгаа тул сүүлийн мессеж харагдахаар гүйлгэнэ
 function scrollToLastMessage() {
