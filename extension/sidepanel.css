@@ -13,42 +13,44 @@
 @font-face { font-family: 'Golos Text'; font-style: normal; font-display: swap; font-weight: 700; src: url(fonts/golos-text-latin-700-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 /* ---------- Өнгө, хэмжээ ---------- */
-/* light-dark(цайвар, бараан): анх системийн тохиргоогоор (prefers-color-scheme).
-   Дээд хэсгийн горимын товч <html data-theme="light|dark">-ийг тавьж color-scheme-ийг хүчээр сольно (theme.js, sidepanel.js). */
+/* light-dark(цайвар, бараан): анх үргэлж цайвар (системийн тохиргооноос үл хамаарна).
+   Дээд хэсгийн горимын товч <html data-theme="light|dark">-ийг тавьж color-scheme-ийг сольно (theme.js, sidepanel.js).
+   Бараан горимын өнгө e-Mongolia-ийн бараан горимоос (2026-10-16): дэвсгэр #0F172A, карт #081D48, chip #1E2A40,
+   хүрээ #2A3B55, үндсэн товч #3B82F6, толгой #03102F. */
 :root {
-  color-scheme: light dark;
-  --ground: light-dark(#F3F6FB, #0F1620);
-  --surface: light-dark(#FFFFFF, #17202B);
-  --surface-sunk: light-dark(#EEF3FA, #1D2733);
-  --border: light-dark(#DDE4EE, #2A3644);
-  --border-strong: light-dark(#D3DCE8, #3A4859);
-  --divider: light-dark(#E8EDF4, #243040);
-  --row-hover: light-dark(#F8FAFD, #1D2733);
+  color-scheme: light;
+  --ground: light-dark(#F3F6FB, #0F172A);
+  --surface: light-dark(#FFFFFF, #081D48);
+  --surface-sunk: light-dark(#EEF3FA, #1E2A40);
+  --border: light-dark(#DDE4EE, #2A3B55);
+  --border-strong: light-dark(#D3DCE8, #3E4F65);
+  --divider: light-dark(#E8EDF4, #1A314D);
+  --row-hover: light-dark(#F8FAFD, #102A66);
 
-  --text: light-dark(#0F1B2D, #E6EDF5);
-  --text-2: light-dark(#24344D, #CFD8E3);
-  --text-3: light-dark(#3A4A60, #B6C2D0);
-  --muted: light-dark(#5B6B80, #97A5B7);
-  --subtle: light-dark(#6B7889, #8796A9);
-  --decor: light-dark(#9AA6B5, #5F6C7D);
-  --icon: light-dark(#3D5A80, #9DB7DA);
+  --text: light-dark(#0F1B2D, #FFFFFF);
+  --text-2: light-dark(#24344D, #E1E6EC);
+  --text-3: light-dark(#3A4A60, #CBD5E1);
+  --muted: light-dark(#5B6B80, #B4C0D0);
+  --subtle: light-dark(#6B7889, #8A9AB2);
+  --decor: light-dark(#9AA6B5, #64748B);
+  --icon: light-dark(#3D5A80, #8FBCFF);
 
-  --accent: light-dark(#1B5BD6, #3B7BEA);
-  --accent-hover: light-dark(#164CB5, #5A92F0);
-  --accent-text: light-dark(#1951BD, #8DB5FF);
-  --accent-soft: light-dark(#E8EFFB, #1A2A44);
-  --accent-border: light-dark(#C4D6F5, #2E4A78);
+  --accent: light-dark(#1B5BD6, #3B82F6);
+  --accent-hover: light-dark(#164CB5, #4791FF);
+  --accent-text: light-dark(#1951BD, #8FBCFF);
+  --accent-soft: light-dark(#E8EFFB, #1E3A5F);
+  --accent-border: light-dark(#C4D6F5, #3385FF80);
 
   --ok: light-dark(#17663A, #74D6A0);
-  --ok-bg: light-dark(#E3F5EA, #12301F);
-  --ok-border: light-dark(#BFE5CC, #1F5135);
+  --ok-bg: light-dark(#E3F5EA, #1B4332);
+  --ok-border: light-dark(#BFE5CC, #2D6A4F);
   --warn: light-dark(#8A5300, #F2BC66);
-  --warn-bg: light-dark(#FDF1DC, #33270F);
-  --warn-border: light-dark(#F3D9A8, #5A4417);
-  --warn-surface: light-dark(#FFF9EE, #33270F);
+  --warn-bg: light-dark(#FDF1DC, #42360A);
+  --warn-border: light-dark(#F3D9A8, #6B5714);
+  --warn-surface: light-dark(#FFF9EE, #42360A);
   --bulb: light-dark(#B7791F, #F2BC66);
   --neutral: light-dark(#4A5568, #AAB6C5);
-  --neutral-bg: light-dark(#EEF1F5, #232D39);
+  --neutral-bg: light-dark(#EEF1F5, #1E2A40);
 
   --danger: light-dark(#C4321F, #F47C69);
   --danger-hover: light-dark(#A82A19, #F7998A);
@@ -61,10 +63,14 @@
   --danger-pill: light-dark(#B42318, #FF9D8E);
   --danger-pill-bg: light-dark(#FDE7E4, #45211B);
 
-  /* Дээд хэсгийн арын зураг: тэнгэрийн өнгө, бараан горимд зургийг бүдгэрүүлэх давхарга */
-  --sky: light-dark(#CFE4FC, #142238);
-  --veil-top: light-dark(rgba(243, 246, 251, 0), rgba(15, 22, 32, 0.55));
-  --veil-mid: light-dark(rgba(243, 246, 251, 0), rgba(15, 22, 32, 0.7));
+  /* Дээд хэсгийн арын зураг: зураг, түүний байрлал/хэмжээ (дээд хэсэг, анхны дэлгэц), доорх тэнгэрийн өнгө.
+     Бараан горимд өөр зураг (доорх :root[data-theme="dark"]). */
+  --sky: light-dark(#CFE4FC, #1B57CF);
+  --sky-image: url(images/background.webp);
+  --sky-at-topbar: left 50% bottom -8vw / 130% auto;
+  --sky-at-hero: left 50% bottom -10vw / 160% auto;
+  --veil-top: rgba(243, 246, 251, 0);
+  --veil-mid: rgba(243, 246, 251, 0);
 
   --r-lg: 14px;
   --r-md: 12px;
@@ -72,7 +78,14 @@
   --font: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 :root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* e-Mongolia-ийн бараан нүүр шиг: цэнхэр тэнгэр, цэнхэр хотын дүрс (images/background-dark.webp, 1346×1169).
+     Хотын дүрс том тул 100% өргөнөөр (хоосон зай гаргахгүй хамгийн бага), суурийг нь доод захад тааруулна. */
+  --sky-image: url(images/background-dark.webp);
+  --sky-at-topbar: left 50% bottom -25vw / 100% auto; /* хамгийн өндөр барилга (зүүн) апп-ын тэмдгийн доор орохгүй */
+  --sky-at-hero: left 50% bottom -20vw / 100% auto;
+}
 
 /* ---------- Үндэс ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -107,13 +120,13 @@ svg { display: block; flex: none; }
 .section-sub { font-size: 13px; color: var(--muted); }
 .muted { color: var(--muted); }
 
-/* Дээд хэсгийн арын зураг (images/background.webp) */
+/* Дээд хэсгийн арын зураг (--sky-image: цайвар images/background.webp, бараан images/background-dark.webp) */
 .topbar {
   flex: none;
   padding: 12px 0 calc(13.5vw + 8px);
   background:
     linear-gradient(180deg, var(--veil-top), var(--veil-mid) calc(100% - 18px), var(--ground) 100%),
-    url(images/background.webp) left 50% bottom -8vw / 130% auto no-repeat,
+    var(--sky-image) var(--sky-at-topbar) no-repeat,
     var(--sky);
 }
 .topbar__title { display: flex; align-items: center; gap: 10px; }
@@ -417,7 +430,7 @@ svg { display: block; flex: none; }
   padding: 28px 0 calc(16.5vw + 20px);
   background:
     linear-gradient(180deg, var(--veil-top), var(--veil-mid) calc(100% - 18px), var(--ground) 100%),
-    url(images/background.webp) left 50% bottom -10vw / 160% auto no-repeat,
+    var(--sky-image) var(--sky-at-hero) no-repeat,
     var(--sky);
 }
 .hero .intro p { color: var(--text-3); }

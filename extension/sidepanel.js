@@ -1069,10 +1069,9 @@ function confirmBox(title, text = "", { ok = "Тийм", danger = false } = {}) 
   });
 }
 
-// Цайвар/бараан горим: анх системийн тохиргоогоор. Товч дарвал эсрэг горимд шилжиж, сонголтыг
+// Цайвар/бараан горим: анх үргэлж цайвар. Товч дарвал эсрэг горимд шилжиж, сонголтыг
 // localStorage-д хадгална (theme.js дараагийн нээлтэд CSS зурахаас өмнө тавина).
-const systemDark = matchMedia("(prefers-color-scheme: dark)");
-const isDark = () => (document.documentElement.dataset.theme || (systemDark.matches ? "dark" : "light")) === "dark";
+const isDark = () => document.documentElement.dataset.theme === "dark";
 function showTheme() {
   const dark = isDark();
   document.querySelectorAll('[data-action="theme"]').forEach(b => {
@@ -1087,7 +1086,6 @@ function toggleTheme() {
   try { localStorage.setItem("theme", theme); } catch {}
   showTheme();
 }
-systemDark.addEventListener("change", showTheme);
 
 // Chat «Тойм»-ын дээд хэсэгт байгаа тул сүүлийн мессеж харагдахаар гүйлгэнэ
 function scrollToLastMessage() {
